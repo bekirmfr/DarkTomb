@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Tomb: Bloodthorn Island</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Game Start Modal -->
+    <div class="game-start-modal" id="game-start-modal">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="game-title">DARK TOMB</h1>
+                <h2 class="game-subtitle">Bloodthorn Island</h2>
+            </div>
+
+            <div class="modal-story">
+                <div class="character-intro">
+                    <div class="character-avatar">??</div>
+                    <div class="character-details">
+                        <h3>Kael Shadowbane</h3>
+                        <p class="character-class">Dungeon Explorer</p>
+                    </div>
+                </div>
+
+                <div class="story-text">
+                    <p>Once a noble knight of the realm, you now stand at the shores of the cursed <strong>Bloodthorn Island</strong>. Ancient darkness stirs beneath its twisted landscape, and whispers speak of treasures beyond imagination hidden in its forgotten depths.</p>
+
+                    <p>Your quest for <span class="highlight">redemption</span> has led you here, where shadows dance with malevolent intent and every step could be your last. The island's dungeons shift and change, revealing new horrors with each turn.</p>
+
+                    <p class="warning">?? Death lurks in every shadow. Trust your blade, master your abilities, and may fortune favor the bold.</p>
+                </div>
+            </div>
+
+            <div class="modal-features">
+                <div class="feature">
+                    <span class="feature-icon">??</span>
+                    <span>Strategic Combat</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">???</span>
+                    <span>Dynamic Exploration</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">??</span>
+                    <span>Ancient Treasures</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">??</span>
+                    <span>Character Progression</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="start-game-btn" id="start-game-btn">
+                    <span class="btn-text">BEGIN YOUR QUEST</span>
+                    <span class="btn-subtitle">Enter Bloodthorn Island</span>
+                </button>
+
+                <div class="difficulty-hint">
+                    <span>?? Prepare yourself - this island shows no mercy to the unprepared</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="header">
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-icon hp-icon">?</div>
+                    <span id="hero-hp">100/100</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon armor-icon">??</div>
+                    <span id="hero-armor">5</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon move-icon">??</div>
+                    <span id="hero-move">3</span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon xp-icon">?</div>
+                    <span id="hero-xp">0</span>
+                </div>
+            </div>
+
+            <div class="turn-info">
+                <div>Turn <span id="turn-number">1</span></div>
+                <div class="turn-phase hero" id="turn-phase">Hero Phase</div>
+            </div>
+
+            <div class="level-info">
+                <div>Level <span id="hero-level">1</span></div>
+                <div>Card <span id="current-card">(0,0)</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="xp-progress" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="map-container">
+                <div class="level-layout" id="level-layout"></div>
+                <div id="environment-effect" class="environment-effect" style="display: none;"></div>
+            </div>
+            <!-- Add map controls -->
+            <div class="map-controls">
+                <div class="zoom-controls">
+                    <button id="zoom-in" class="map-btn">+</button>
+                    <button id="zoom-out" class="map-btn">-</button>
+                </div>
+                <div class="nav-controls">
+                    <button id="nav-up" class="map-btn">↑</button>
+                    <div class="horizontal-nav">
+                        <button id="nav-left" class="map-btn">←</button>
+                        <button id="nav-right" class="map-btn">→</button>
+                    </div>
+                    <button id="nav-down" class="map-btn">↓</button>
+                </div>
+            </div>
+                <div class="abilities-panel">
+                    <div class="ability" data-ability="strike">
+                        <div class="ability-name">Strike</div>
+                        <div class="ability-details">+2 dmg, Range 1</div>
+                    </div>
+                    <div class="ability" data-ability="fireball">
+                        <div class="ability-name">Fireball</div>
+                        <div class="ability-details">+4 dmg, Range 3</div>
+                    </div>
+                    <div class="ability" data-ability="heal">
+                        <div class="ability-name">Heal</div>
+                        <div class="ability-details">+15 HP</div>
+                    </div>
+                    <div class="ability" data-ability="charge">
+                        <div class="ability-name">Charge</div>
+                        <div class="ability-details">+3 dmg, Move+Attack</div>
+                    </div>
+                    <div class="ability" data-ability="shield">
+                        <div class="ability-name">Shield</div>
+                        <div class="ability-details">+2 Armor, 3 turns</div>
+                    </div>
+                </div>
+
+                <div class="bottom-panel">
+                    <div class="dice-container">
+                        <div class="dice" id="dice">20</div>
+                        <span id="dice-result">Ready to roll!</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn" id="move-btn">Move</button>
+                        <button class="action-btn" id="attack-btn" disabled>Attack</button>
+                        <button class="action-btn" id="end-turn-btn">End Turn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Scripts -->
+    <script src="js/systems/abilities.js"></script>
+    <script src="js/entities/hero.js"></script>
+    <script src="js/entities/monster.js"></script>
+    <script src="js/systems/combat.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
