@@ -1,4 +1,35 @@
-﻿/* Enhanced Dark Tomb: Bloodthorn Island Styles */
+﻿/* Enhanced Dark Tomb: Bloodthorn Island - Complete Responsive Styles with Fixed Card Spacing */
+
+/* Dynamic CSS Custom Properties - Updated by JavaScript */
+:root {
+    /* Core responsive sizing - dynamically calculated by game.js */
+    --card-size: 380px; /* Will be calculated optimal size */
+    --card-gap: 15px; /* FIXED small gap between cards in all conditions */
+    --tile-font-size: 16px; /* Optimal tile font size */
+    --map-padding: 40px; /* Responsive map padding */
+    /* Zoom scale factors - dynamically calculated */
+    --zoom-tiny-scale: 0.6;
+    --zoom-small-scale: 0.8;
+    --zoom-normal-scale: 1.0;
+    --zoom-large-scale: 1.3;
+    --zoom-huge-scale: 1.6;
+    --zoom-massive-scale: 2.0;
+    /* Theme colors */
+    --primary-color: #6c5ce7;
+    --secondary-color: #74b9ff;
+    --danger-color: #e74c3c;
+    --success-color: #00b894;
+    --warning-color: #f39c12;
+    /* UI dimensions */
+    --header-height: 60px;
+    --abilities-panel-height: 120px;
+    --bottom-panel-height: 140px;
+    /* Touch interaction */
+    --touch-target-min: 44px; /* iOS/Android minimum touch target */
+    /* Viewport units for mobile */
+    --vh: 1vh;
+    --vw: 1vw;
+}
 
 /* Game Start Modal Styles */
 .game-start-modal {
@@ -42,10 +73,9 @@
     background: linear-gradient(145deg, #2d1b5b, #4a2574, #2d1b5b);
     border: 3px solid transparent;
     background-clip: padding-box;
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 600px;
-    width: 90%;
+    border-radius: clamp(12px, 4vw, 20px);
+    padding: clamp(20px, 5vw, 40px);
+    max-width: min(600px, 90vw);
     max-height: 90vh;
     overflow-y: auto;
     color: white;
@@ -63,18 +93,18 @@
         right: -3px;
         bottom: -3px;
         background: linear-gradient(45deg, #6c5ce7, #74b9ff, #e74c3c, #6c5ce7);
-        border-radius: 20px;
+        border-radius: clamp(12px, 4vw, 20px);
         z-index: -1;
         animation: borderGlow 3s linear infinite;
     }
 
 .modal-header {
-    margin-bottom: 30px;
+    margin-bottom: clamp(20px, 5vw, 30px);
     position: relative;
 }
 
 .game-title {
-    font-size: 48px;
+    font-size: clamp(28px, 8vw, 48px);
     font-weight: bold;
     background: linear-gradient(45deg, #74b9ff, #6c5ce7, #e74c3c);
     background-size: 200% 200%;
@@ -84,11 +114,11 @@
     animation: titleShine 3s ease-in-out infinite;
     text-shadow: 0 0 30px rgba(116, 185, 255, 0.5);
     margin-bottom: 10px;
-    letter-spacing: 2px;
+    letter-spacing: clamp(1px, 0.5vw, 2px);
 }
 
 .game-subtitle {
-    font-size: 24px;
+    font-size: clamp(16px, 4vw, 24px);
     color: #00cec9;
     font-weight: 300;
     letter-spacing: 1px;
@@ -97,51 +127,52 @@
 }
 
 .modal-story {
-    margin-bottom: 30px;
+    margin-bottom: clamp(20px, 5vw, 30px);
     text-align: left;
 }
 
 .character-intro {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: clamp(10px, 3vw, 15px);
     margin-bottom: 20px;
-    padding: 15px;
+    padding: clamp(10px, 3vw, 15px);
     background: rgba(45, 27, 91, 0.5);
     border-radius: 12px;
     border: 1px solid rgba(116, 185, 255, 0.2);
 }
 
 .character-avatar {
-    width: 60px;
-    height: 60px;
+    width: clamp(40px, 10vw, 60px);
+    height: clamp(40px, 10vw, 60px);
     background: linear-gradient(45deg, #3498db, #2980b9);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 30px;
+    font-size: clamp(20px, 6vw, 30px);
     border: 2px solid #74b9ff;
     box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
     animation: avatarGlow 2s ease-in-out infinite alternate;
+    flex-shrink: 0;
 }
 
 .character-details h3 {
-    font-size: 20px;
+    font-size: clamp(16px, 4vw, 20px);
     color: #74b9ff;
     margin-bottom: 5px;
     font-weight: bold;
 }
 
 .character-class {
-    font-size: 14px;
+    font-size: clamp(12px, 3vw, 14px);
     color: #00cec9;
     opacity: 0.8;
 }
 
 .story-text {
     line-height: 1.6;
-    font-size: 16px;
+    font-size: clamp(14px, 3.5vw, 16px);
     color: #ddd;
 }
 
@@ -169,20 +200,21 @@
     color: #ff7675;
     text-align: center;
     animation: warningPulse 2s ease-in-out infinite;
+    font-size: clamp(12px, 3vw, 14px);
 }
 
 .modal-features {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: clamp(10px, 3vw, 15px);
+    margin-bottom: clamp(20px, 5vw, 30px);
 }
 
 .feature {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px;
+    padding: clamp(8px, 2vw, 12px);
     background: rgba(45, 27, 91, 0.4);
     border-radius: 8px;
     border: 1px solid rgba(108, 92, 231, 0.3);
@@ -196,9 +228,10 @@
     }
 
 .feature-icon {
-    font-size: 20px;
+    font-size: clamp(16px, 4vw, 20px);
     width: 30px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .modal-actions {
@@ -210,7 +243,7 @@
     background-size: 200% 200%;
     border: none;
     border-radius: 15px;
-    padding: 20px 40px;
+    padding: clamp(15px, 4vw, 20px) clamp(30px, 8vw, 40px);
     color: white;
     font-weight: bold;
     cursor: pointer;
@@ -220,7 +253,8 @@
     box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     animation: btnPulse 2s ease-in-out infinite;
     margin-bottom: 20px;
-    min-width: 280px;
+    min-width: clamp(200px, 50vw, 280px);
+    min-height: var(--touch-target-min);
 }
 
     .start-game-btn::before {
@@ -250,20 +284,20 @@
 
 .btn-text {
     display: block;
-    font-size: 18px;
+    font-size: clamp(14px, 4vw, 18px);
     letter-spacing: 1px;
     margin-bottom: 5px;
 }
 
 .btn-subtitle {
     display: block;
-    font-size: 12px;
+    font-size: clamp(10px, 2.5vw, 12px);
     opacity: 0.8;
     font-weight: normal;
 }
 
 .difficulty-hint {
-    font-size: 12px;
+    font-size: clamp(10px, 2.5vw, 12px);
     color: #ff7675;
     opacity: 0.8;
     font-style: italic;
@@ -279,12 +313,17 @@
         animation: modalContentExit 0.5s ease-in forwards;
     }
 
-/* Base Styles */
+/* Base Reset and Touch Optimization */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 body {
@@ -293,42 +332,61 @@ body {
     color: #fff;
     overflow: hidden;
     touch-action: manipulation;
-    user-select: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent zooming on input focus - iOS Safari */
+input, select, textarea, button {
+    font-size: max(16px, 1rem);
+}
+
+/* Game Container - Full Viewport with Enhanced Mobile Support */
 .game-container {
     width: 100vw;
-    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
     display: flex;
     flex-direction: column;
     position: relative;
+    overflow: hidden;
 }
 
-/* Header Styles */
+/* Header - Responsive Height and Layout */
 .header {
     background: linear-gradient(45deg, #2d1b5b, #4a2574);
-    padding: 10px;
+    padding: clamp(8px, 2vw, 15px);
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
     border-bottom: 1px solid rgba(116, 185, 255, 0.2);
+    height: var(--header-height);
+    min-height: 50px;
+    flex-shrink: 0;
+    z-index: 100;
 }
 
 .hero-stats {
     display: flex;
-    gap: 15px;
-    font-size: 14px;
+    gap: clamp(6px, 2vw, 15px);
+    font-size: clamp(11px, 2.5vw, 14px);
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .stat {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 8px;
+    gap: clamp(3px, 1vw, 5px);
+    padding: clamp(3px, 1vw, 4px) clamp(6px, 1.5vw, 8px);
     background: rgba(45, 27, 91, 0.3);
     border-radius: 6px;
     transition: all 0.3s ease;
+    min-height: clamp(32px, 8vw, var(--touch-target-min));
+    white-space: nowrap;
 }
 
     .stat:hover {
@@ -337,14 +395,15 @@ body {
     }
 
 .stat-icon {
-    width: 20px;
-    height: 20px;
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: clamp(8px, 2vw, 10px);
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 .hp-icon {
@@ -369,21 +428,25 @@ body {
 
 .level-info {
     text-align: right;
-    font-size: 12px;
+    font-size: clamp(10px, 2.5vw, 12px);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .turn-info {
     text-align: center;
-    font-size: 14px;
+    font-size: clamp(12px, 3vw, 14px);
     background: linear-gradient(45deg, #6c5ce7, #74b9ff);
-    padding: 8px 16px;
+    padding: clamp(6px, 1.5vw, 8px) clamp(12px, 3vw, 16px);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
     border: 1px solid rgba(116, 185, 255, 0.2);
+    white-space: nowrap;
 }
 
 .turn-phase {
-    font-size: 12px;
+    font-size: clamp(10px, 2.5vw, 12px);
     opacity: 0.9;
     margin-top: 2px;
 }
@@ -400,396 +463,244 @@ body {
         color: #f39c12;
     }
 
-/* Game Area Styles */
+/* Game Area - Flexible Layout */
 .game-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Important for flex child to shrink */
 }
 
+/* Map Container - Enhanced for Full Directional Scrolling */
 .map-container {
     flex: 1;
     position: relative;
     background: radial-gradient(circle at 30% 30%, #2c3e50, #1a252f);
-    overflow: hidden; /* Hide scrollbars, we'll handle scrolling manually */
-    border: 1px solid rgba(74, 103, 65, 0.3);
+    overflow: hidden;
     cursor: grab;
+    touch-action: none;
     user-select: none;
+    min-height: 0;
+    border: 1px solid rgba(74, 103, 65, 0.3);
 }
 
     .map-container:active {
         cursor: grabbing;
     }
 
+/* Map Viewport - Enhanced for Full Directional Scrolling */
 .map-viewport {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    padding: var(--map-padding);
-    transition: transform 0.3s ease;
+    overflow: auto !important;
+    overscroll-behavior: none;
+    padding: 0;
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(108, 92, 231, 0.8) rgba(45, 27, 91, 0.3);
 }
 
-/* Smooth scrolling for better UX */
-.map-viewport {
-    scroll-behavior: smooth;
-}
-
-    /* Custom scrollbars for better aesthetics */
+    /* Enhanced Scrollbars for Desktop */
     .map-viewport::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 12px;
+        height: 12px;
     }
 
     .map-viewport::-webkit-scrollbar-track {
         background: rgba(45, 27, 91, 0.3);
-        border-radius: 4px;
+        border-radius: 6px;
+        margin: 2px;
     }
 
     .map-viewport::-webkit-scrollbar-thumb {
-        background: rgba(108, 92, 231, 0.6);
-        border-radius: 4px;
-        transition: background 0.3s ease;
+        background: linear-gradient(45deg, rgba(108, 92, 231, 0.8), rgba(116, 185, 255, 0.6));
+        border-radius: 6px;
+        border: 2px solid rgba(45, 27, 91, 0.3);
+        transition: all 0.3s ease;
     }
 
         .map-viewport::-webkit-scrollbar-thumb:hover {
-            background: rgba(108, 92, 231, 0.8);
+            background: linear-gradient(45deg, rgba(108, 92, 231, 1), rgba(116, 185, 255, 0.8));
+            border-color: rgba(45, 27, 91, 0.1);
         }
 
+    .map-viewport::-webkit-scrollbar-corner {
+        background: rgba(45, 27, 91, 0.3);
+        border-radius: 6px;
+    }
+
+/* Level Layout - Enhanced with FIXED card spacing */
 .level-layout {
     display: grid;
-    gap: var(--card-gap);
+    gap: var(--card-gap); /* Fixed 15px gap */
     justify-content: center;
     align-content: center;
-    min-height: 100%;
-    padding: var(--card-gap);
-    max-width: none; /* Allow unlimited width for scrolling */
+    padding: var(--card-gap); /* Consistent padding */
+    /* Critical: Dynamic sizing controlled by JavaScript */
+    min-width: 20vw !important;
+    min-height: 20vh !important;
+    width: fit-content;
+    height: fit-content;
+    /* Transform settings for smooth zoom */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center center;
     position: relative;
-    transition: transform 0.3s ease;
+    /* Fixed margin for consistent spacing */
+    margin: 60px; /* Reduced from 100px for tighter layout */
+    /* Optimize for performance */
+    will-change: transform;
+    contain: layout style;
 }
 
-/* Map Controls - Collapsible Menu */
-.map-controls {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 100;
-    background: rgba(45, 27, 91, 0.95);
-    border-radius: 8px;
-    border: 1px solid rgba(116, 185, 255, 0.3);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-.controls-menu-btn {
-    background: linear-gradient(45deg, #6c5ce7, #74b9ff);
-    border: none;
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 120px;
-    justify-content: space-between;
-}
-
-    .controls-menu-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+/* Desktop-optimized with FIXED spacing */
+@media (min-width: 1024px) {
+    :root {
+        --card-size: 420px; /* Larger for desktop */
+        --card-gap: 15px; /* FIXED - same gap on desktop */
+        --tile-font-size: 18px;
+        --map-padding: 30px; /* Reduced padding */
     }
 
-    .controls-menu-btn .menu-icon {
-        transition: transform 0.3s ease;
+    .level-layout {
+        margin: 80px; /* Slightly more space for desktop scrolling */
+        min-width: 0vw !important;
+        min-height: 0vh !important;
     }
 
-    .controls-menu-btn.open .menu-icon {
-        transform: rotate(180deg);
+    /* Enhanced scrollbars for desktop */
+    .map-viewport::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
     }
 
-.controls-menu {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    padding: 0 12px;
+    /* Hide touch indicators on desktop by default */
+    .touch-indicators {
+        display: none;
+    }
 }
 
-    .controls-menu.open {
-        max-height: 200px;
-        padding: 12px 12px 8px 12px;
+/* Large Desktop (1440px+) - Still with FIXED spacing */
+@media (min-width: 1440px) {
+    :root {
+        --card-size: 480px;
+        --card-gap: 15px; /* FIXED - same gap even on large desktop */
+        --tile-font-size: 20px;
+        --map-padding: 40px;
     }
 
-.control-group {
-    margin-bottom: 12px;
+    .level-layout {
+        margin: 100px;
+        min-width: 0vw !important;
+        min-height: 0vh !important;
+    }
 }
 
-    .control-group:last-child {
-        margin-bottom: 0;
+/* Mobile Portrait - Still with FIXED spacing */
+@media (max-width: 567px) {
+    :root {
+        --card-size: 320px;
+        --card-gap: 15px; /* FIXED - same gap on mobile */
+        --tile-font-size: 12px;
+        --map-padding: 20px;
     }
 
-.control-label {
-    font-size: 10px;
-    color: #00cec9;
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-}
-
-.zoom-controls {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-
-.zoom-btn {
-    background: linear-gradient(45deg, #6c5ce7, #74b9ff);
-    border: none;
-    border-radius: 4px;
-    padding: 6px 8px;
-    color: white;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-    .zoom-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+    .level-layout {
+        margin: 40px; /* Smaller margin for mobile */
     }
-
-    .zoom-btn:disabled {
-        background: linear-gradient(45deg, #636e72, #2d3436);
-        cursor: not-allowed;
-        opacity: 0.6;
-        transform: none;
-        box-shadow: none;
-    }
-
-.zoom-level {
-    color: white;
-    font-size: 11px;
-    padding: 0 8px;
-    font-weight: bold;
-    text-align: center;
-    min-width: 40px;
 }
 
-.navigation-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.nav-btn {
-    background: linear-gradient(45deg, #00b894, #00cec9);
-    border: none;
-    border-radius: 4px;
-    padding: 6px 8px;
-    color: white;
-    font-weight: bold;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-    .nav-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 184, 148, 0.4);
-    }
-
-/* Touch gesture indicators */
-.touch-indicators {
-    position: absolute;
-    bottom: 15px;
-    left: 15px;
-    background: rgba(45, 27, 91, 0.95);
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(116, 185, 255, 0.3);
-    font-size: 10px;
-    color: #00cec9;
-    backdrop-filter: blur(10px);
-    z-index: 100;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-}
-
-    .touch-indicators:hover {
-        opacity: 1;
-    }
-
-/* Zoom levels with better scaling */
+/* Enhanced Zoom Levels with Better Desktop Support */
 .level-layout.zoom-tiny {
-    transform: scale(0.6);
-    transform-origin: center;
+    transform: scale(var(--zoom-tiny-scale));
+    min-width: calc(50vw / 0.6) !important;
+    min-height: calc(50vh / 0.6) !important;
 }
 
 .level-layout.zoom-small {
-    transform: scale(0.8);
-    transform-origin: center;
+    transform: scale(var(--zoom-small-scale));
+    min-width: calc(50vw / 0.8) !important;
+    min-height: calc(50vh / 0.8) !important;
 }
 
 .level-layout.zoom-normal {
-    transform: scale(1);
-    transform-origin: center;
+    transform: scale(var(--zoom-normal-scale));
+    min-width: calc(50vw) !important;
+    min-height: calc(50vh) !important;
 }
 
 .level-layout.zoom-large {
-    transform: scale(1.3);
-    transform-origin: center;
+    transform: scale(var(--zoom-large-scale));
+    min-width: calc(50vw * 1.3) !important;
+    min-height: calc(50vh * 1.3) !important;
 }
 
 .level-layout.zoom-huge {
-    transform: scale(1.6);
-    transform-origin: center;
+    transform: scale(var(--zoom-huge-scale));
+    min-width: calc(50vw * 1.6) !important;
+    min-height: calc(50vh * 1.6) !important;
 }
 
 .level-layout.zoom-massive {
-    transform: scale(2.0);
-    transform-origin: center;
+    transform: scale(var(--zoom-massive-scale));
+    min-width: calc(50vw * 2.0) !important;
+    min-height: calc(50vh * 2.0) !important;
 }
 
-.level-layout {
-    display: grid;
-    gap: var(--card-gap);
-    justify-content: center;
-    align-content: center;
-    padding: var(--card-gap);
-    overflow: auto;
-    height: fit-content;
-    width: fit-content;
-}
-
-/* Card Container Styles - Responsive Sizing */
+/* Enhanced Card Container for Better Desktop Visibility */
 .card-container {
     position: relative;
     width: var(--card-size);
     height: var(--card-size);
     border: 2px solid #4a6741;
-    border-radius: 8px;
+    border-radius: clamp(8px, 1vw, 16px);
     background: linear-gradient(45deg, #2c3e50, #1a252f);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    flex-shrink: 0;
+    contain: layout style paint;
+    /* Enhanced shadow for better depth perception */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* CSS Custom Properties for Single-Card Focused Sizing */
-:root {
-    --card-size: 380px; /* Larger default for better desktop experience */
-    --card-gap: 20px; /* Reduced gap for better space utilization */
-    --tile-font-size: 16px; /* Clear, readable tiles */
-    --map-padding: 40px; /* Reduced padding for more card space */
-}
-
-/* Responsive breakpoints - optimized for better card visibility */
-/* Extra Large Desktop (1920px+) */
-@media (min-width: 1920px) {
-    :root {
-        --card-size: 450px; /* Much larger for big screens */
-        --card-gap: 25px;
-        --tile-font-size: 20px;
-        --map-padding: 60px;
-    }
-}
-
-/* Large Desktop (1440px - 1919px) */
-@media (min-width: 1440px) and (max-width: 1919px) {
-    :root {
-        --card-size: 420px; /* Larger for better space utilization */
-        --card-gap: 22px;
-        --tile-font-size: 18px;
-        --map-padding: 50px;
-    }
-}
-
-/* Standard Desktop (1024px - 1439px) */
-@media (min-width: 1024px) and (max-width: 1439px) {
-    :root {
-        --card-size: 360px; /* Increased from 300px */
-        --card-gap: 18px;
-        --tile-font-size: 15px;
-        --map-padding: 35px;
-    }
-}
-
-/* Tablet Portrait (768px - 1023px) */
-@media (min-width: 768px) and (max-width: 1023px) {
-    :root {
-        --card-size: 320px; /* Increased from 280px */
-        --card-gap: 16px;
-        --tile-font-size: 14px;
-        --map-padding: 25px;
-    }
-}
-
-/* Mobile Landscape (568px - 767px) */
-@media (min-width: 568px) and (max-width: 767px) {
-    :root {
-        --card-size: 300px; /* Significantly increased from 240px */
-        --card-gap: 15px;
-        --tile-font-size: 13px;
-        --map-padding: 20px;
-    }
-}
-
-/* Mobile Portrait (max 567px) - Single card should fit gracefully */
-@media (max-width: 567px) {
-    :root {
-        --card-size: 320px; /* Much larger - increased from 200px */
-        --card-gap: 12px; /* Gap less important for single card view */
-        --tile-font-size: 12px; /* Larger font for better readability */
-        --map-padding: 20px; /* Reasonable padding */
-    }
-}
-
-.card-container.revealed {
-    border-color: #2ecc71;
-    box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
-}
-
-.card-container.current {
-    border-color: #3498db;
-    box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
-    animation: currentCardGlow 2s infinite alternate;
-    transform: scale(1.05);
-}
-
-.card-container.unrevealed {
-    border-color: #7f8c8d;
-    background: linear-gradient(45deg, #34495e, #2c3e50);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: #95a5a6;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-    .card-container.unrevealed:hover {
-        border-color: #e74c3c;
-        box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
-        transform: scale(1.05);
+    .card-container.revealed {
+        border-color: #2ecc71;
+        box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
     }
 
+    .card-container.current {
+        border-color: #3498db;
+        box-shadow: 0 0 25px rgba(52, 152, 219, 0.8), 0 0 50px rgba(52, 152, 219, 0.4);
+        animation: currentCardGlow 2s infinite alternate;
+        transform: scale(1.03);
+        z-index: 10;
+    }
+
+    .card-container.unrevealed {
+        border-color: #7f8c8d;
+        background: linear-gradient(45deg, #34495e, #2c3e50);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(18px, 4vw, 28px);
+        color: #95a5a6;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-height: var(--touch-target-min);
+    }
+
+        .card-container.unrevealed:hover,
+        .card-container.unrevealed:active {
+            border-color: #e74c3c;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+            transform: scale(1.05);
+        }
+
+/* Card Grid - 7x7 Responsive Grid */
 .card-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -797,30 +708,34 @@ body {
     width: 100%;
     height: 100%;
     gap: 1px;
-    padding: 2px;
+    padding: clamp(1px, 0.5vw, 3px);
 }
 
-/* Card Tile Styles */
+/* Card Tiles - Responsive and Touch-Friendly */
 .card-tile {
     background: linear-gradient(45deg, #34495e, #2c3e50);
     border: 1px solid #4a6741;
-    border-radius: 2px;
+    border-radius: clamp(1px, 0.2vw, 3px);
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: var(--tile-font-size);
+    min-height: clamp(30px, 6vw, var(--touch-target-min));
+    touch-action: manipulation;
 }
 
-    .card-tile:hover {
+    .card-tile:hover,
+    .card-tile:active {
         background: linear-gradient(45deg, #4a6741, #3e5a39);
-        transform: scale(1.1);
+        transform: scale(1.05);
         z-index: 10;
         box-shadow: 0 2px 8px rgba(74, 103, 65, 0.5);
     }
 
+    /* Tile States */
     .card-tile.wall {
         background: linear-gradient(45deg, #2c2c2c, #1a1a1a);
         border-color: #666;
@@ -857,6 +772,7 @@ body {
         z-index: 3;
     }
 
+    /* Movement and Ability Range Highlights */
     .card-tile.movement-range {
         border-color: #00cec9 !important;
         border-width: 2px !important;
@@ -877,13 +793,9 @@ body {
             pointer-events: none;
         }
 
-        .card-tile.movement-range:hover {
-            transform: scale(1.05) !important;
+        .card-tile.movement-range:hover::before {
+            background: rgba(0, 184, 148, 0.25);
         }
-
-            .card-tile.movement-range:hover::before {
-                background: rgba(0, 184, 148, 0.25);
-            }
 
     .card-tile.ability-range {
         border-color: #e74c3c !important;
@@ -905,14 +817,11 @@ body {
             pointer-events: none;
         }
 
-        .card-tile.ability-range:hover {
-            transform: scale(1.05) !important;
+        .card-tile.ability-range:hover::before {
+            background: rgba(231, 76, 60, 0.25);
         }
 
-            .card-tile.ability-range:hover::before {
-                background: rgba(231, 76, 60, 0.25);
-            }
-
+/* Card Coordinates Label */
 .card-coordinates {
     position: absolute;
     top: -5px;
@@ -921,32 +830,198 @@ body {
     color: white;
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: clamp(8px, 1.5vw, 12px);
     font-weight: bold;
     border: 1px solid rgba(116, 185, 255, 0.3);
     z-index: 10;
+    line-height: 1;
 }
 
-/* Abilities Panel Styles */
+/* Map Controls - Responsive and Touch-Friendly */
+.map-controls {
+    position: absolute;
+    top: clamp(15px, 2vw, 25px);
+    right: clamp(15px, 2vw, 25px);
+    z-index: 200;
+    background: rgba(45, 27, 91, 0.95);
+    border-radius: 12px;
+    border: 1px solid rgba(116, 185, 255, 0.3);
+    backdrop-filter: blur(15px);
+    transition: all 0.3s ease;
+    max-width: calc(100vw - 50px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 1024px) {
+    .map-controls {
+        top: 20px;
+        right: 20px;
+        max-width: 300px;
+    }
+}
+
+.controls-menu-btn {
+    background: linear-gradient(45deg, #6c5ce7, #74b9ff);
+    border: none;
+    border-radius: 8px;
+    padding: clamp(8px, 2vw, 12px);
+    color: white;
+    font-weight: bold;
+    font-size: clamp(12px, 2.5vw, 16px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: clamp(100px, 20vw, 140px);
+    min-height: var(--touch-target-min);
+    justify-content: space-between;
+    touch-action: manipulation;
+}
+
+    .controls-menu-btn:hover,
+    .controls-menu-btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+    }
+
+    .controls-menu-btn .menu-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .controls-menu-btn.open .menu-icon {
+        transform: rotate(180deg);
+    }
+
+.controls-menu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+    padding: 0 12px;
+}
+
+    .controls-menu.open {
+        max-height: 250px;
+        padding: 12px;
+    }
+
+/* Control Groups */
+.control-group {
+    margin-bottom: 12px;
+}
+
+.control-label {
+    font-size: clamp(9px, 2vw, 12px);
+    color: #00cec9;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.zoom-controls, .navigation-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.navigation-controls {
+    flex-direction: column;
+    gap: 6px;
+}
+
+.zoom-btn, .nav-btn {
+    background: linear-gradient(45deg, #6c5ce7, #74b9ff);
+    border: none;
+    border-radius: 4px;
+    padding: clamp(6px, 1.5vw, 10px);
+    color: white;
+    font-weight: bold;
+    font-size: clamp(10px, 2vw, 14px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: clamp(32px, 6vw, 44px);
+    min-height: clamp(32px, 6vw, 44px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+}
+
+.nav-btn {
+    width: 100%;
+    min-height: clamp(36px, 7vw, 44px);
+    background: linear-gradient(45deg, #00b894, #00cec9);
+}
+
+    .zoom-btn:hover, .nav-btn:hover,
+    .zoom-btn:active, .nav-btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+    }
+
+.zoom-btn:disabled {
+    background: linear-gradient(45deg, #636e72, #2d3436);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+.zoom-level {
+    color: white;
+    font-size: clamp(10px, 2vw, 14px);
+    padding: 0 clamp(6px, 2vw, 12px);
+    font-weight: bold;
+    text-align: center;
+    min-width: clamp(35px, 8vw, 50px);
+}
+
+/* Touch Indicators - Responsive */
+.touch-indicators {
+    position: absolute;
+    bottom: clamp(10px, 2vw, 20px);
+    left: clamp(10px, 2vw, 20px);
+    background: rgba(45, 27, 91, 0.95);
+    padding: clamp(6px, 1.5vw, 12px);
+    border-radius: 6px;
+    border: 1px solid rgba(116, 185, 255, 0.3);
+    font-size: clamp(9px, 2vw, 12px);
+    color: #00cec9;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+    max-width: calc(100vw - 40px);
+    line-height: 1.2;
+}
+
+    .touch-indicators:hover {
+        opacity: 1;
+    }
+
+/* Abilities Panel - Responsive */
 .abilities-panel {
     background: linear-gradient(45deg, #2d1b5b, #4a2574);
-    padding: 15px;
+    padding: clamp(8px, 2vw, 15px);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 10px;
-    max-height: 120px;
+    grid-template-columns: repeat(auto-fit, minmax(clamp(70px, 15vw, 90px), 1fr));
+    gap: clamp(6px, 1.5vw, 12px);
+    max-height: var(--abilities-panel-height);
     overflow-y: auto;
     border-top: 1px solid rgba(116, 185, 255, 0.2);
+    flex-shrink: 0;
 }
 
 .ability {
     background: linear-gradient(45deg, #6c5ce7, #74b9ff);
     border: none;
     border-radius: 8px;
-    padding: 12px 8px;
+    padding: clamp(8px, 2vw, 12px);
     color: white;
     font-weight: bold;
-    font-size: 11px;
+    font-size: clamp(9px, 2vw, 12px);
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -955,16 +1030,14 @@ body {
     align-items: center;
     gap: 2px;
     border: 1px solid rgba(116, 185, 255, 0.3);
+    min-height: var(--touch-target-min);
+    touch-action: manipulation;
 }
 
-    .ability:hover {
+    .ability:hover, .ability:active {
         transform: translateY(-2px);
         box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
         border-color: #74b9ff;
-    }
-
-    .ability:active {
-        transform: translateY(0);
     }
 
     .ability.cooldown {
@@ -981,14 +1054,16 @@ body {
     }
 
 .ability-name {
-    font-size: 10px;
+    font-size: clamp(9px, 2vw, 11px);
     text-align: center;
+    line-height: 1.2;
 }
 
 .ability-details {
-    font-size: 8px;
+    font-size: clamp(7px, 1.5vw, 9px);
     opacity: 0.8;
     text-align: center;
+    line-height: 1.1;
 }
 
 .cooldown-overlay {
@@ -1002,47 +1077,52 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: clamp(12px, 3vw, 16px);
     font-weight: bold;
     color: #ff7675;
 }
 
-/* Bottom Panel Styles */
+/* Bottom Panel - Responsive */
 .bottom-panel {
     background: linear-gradient(45deg, #2d1b5b, #4a2574);
-    padding: 10px;
+    padding: clamp(8px, 2vw, 15px);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: clamp(8px, 2vw, 15px);
     border-top: 1px solid rgba(116, 185, 255, 0.2);
+    min-height: calc(var(--bottom-panel-height) - var(--abilities-panel-height));
+    flex-shrink: 0;
 }
 
 .dice-container {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: clamp(8px, 2vw, 15px);
+    flex-wrap: wrap;
 }
 
 .dice {
-    width: 50px;
-    height: 50px;
+    width: clamp(40px, 8vw, 60px);
+    height: clamp(40px, 8vw, 60px);
     background: linear-gradient(45deg, #fff, #f8f9fa);
     border: 2px solid #2d3436;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: clamp(14px, 3vw, 20px);
     font-weight: bold;
     color: #2d3436;
     cursor: pointer;
     transition: all 0.3s ease;
     animation: diceIdle 3s infinite ease-in-out;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    touch-action: manipulation;
+    min-height: var(--touch-target-min);
 }
 
-    .dice:hover {
+    .dice:hover, .dice:active {
         transform: scale(1.1) rotate(5deg);
         box-shadow: 0 4px 20px rgba(255,255,255,0.3);
     }
@@ -1051,25 +1131,35 @@ body {
         animation: diceRoll 1s ease-in-out;
     }
 
+#dice-result {
+    font-size: clamp(10px, 2.5vw, 14px);
+    max-width: clamp(100px, 25vw, 200px);
+    line-height: 1.3;
+}
+
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: clamp(6px, 1.5vw, 12px);
+    flex-wrap: wrap;
 }
 
 .action-btn {
     background: linear-gradient(45deg, #00b894, #00cec9);
     border: none;
     border-radius: 6px;
-    padding: 10px 15px;
+    padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
     color: white;
     font-weight: bold;
-    font-size: 12px;
+    font-size: clamp(11px, 2.5vw, 14px);
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid rgba(0, 206, 201, 0.3);
+    min-height: var(--touch-target-min);
+    white-space: nowrap;
+    touch-action: manipulation;
 }
 
-    .action-btn:hover {
+    .action-btn:hover, .action-btn:active {
         transform: translateY(-2px);
         box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
         border-color: #00cec9;
@@ -1080,6 +1170,8 @@ body {
         cursor: not-allowed;
         opacity: 0.6;
         border-color: #636e72;
+        transform: none;
+        box-shadow: none;
     }
 
 /* Message and Modal Styles */
@@ -1091,13 +1183,15 @@ body {
     background: rgba(45, 27, 91, 0.95);
     border: 2px solid #6c5ce7;
     border-radius: 12px;
-    padding: 20px;
-    max-width: 80%;
+    padding: clamp(15px, 4vw, 20px);
+    max-width: min(400px, 80vw);
     text-align: center;
     z-index: 1000;
     backdrop-filter: blur(10px);
     animation: messageSlide 0.5s ease-out;
     box-shadow: 0 10px 30px rgba(108, 92, 231, 0.4);
+    font-size: clamp(12px, 3vw, 16px);
+    line-height: 1.4;
 }
 
 .character-sheet {
@@ -1113,14 +1207,15 @@ body {
     z-index: 2000;
     backdrop-filter: blur(5px);
     animation: characterSheetSlide 0.5s ease-out;
+    padding: clamp(10px, 2vw, 20px);
 }
 
 .character-sheet-content {
     background: linear-gradient(145deg, #2d1b5b, #4a2574);
     border: 3px solid #6c5ce7;
     border-radius: 16px;
-    padding: 30px;
-    max-width: 90vw;
+    padding: clamp(20px, 4vw, 30px);
+    max-width: min(800px, 90vw);
     max-height: 90vh;
     overflow-y: auto;
     color: white;
@@ -1130,13 +1225,13 @@ body {
 
 .character-header {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: clamp(20px, 4vw, 25px);
     border-bottom: 2px solid #6c5ce7;
     padding-bottom: 15px;
 }
 
 .character-name {
-    font-size: 28px;
+    font-size: clamp(20px, 5vw, 28px);
     font-weight: bold;
     color: #74b9ff;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -1144,20 +1239,20 @@ body {
 }
 
 .character-class {
-    font-size: 16px;
+    font-size: clamp(12px, 3vw, 16px);
     color: #00cec9;
     opacity: 0.9;
 }
 
 .character-portrait {
-    width: 80px;
-    height: 80px;
+    width: clamp(60px, 12vw, 80px);
+    height: clamp(60px, 12vw, 80px);
     background: linear-gradient(45deg, #3498db, #2980b9);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 40px;
+    font-size: clamp(30px, 6vw, 40px);
     margin: 15px auto;
     border: 3px solid #74b9ff;
     box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
@@ -1165,21 +1260,21 @@ body {
 
 .character-stats {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 25px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: clamp(15px, 3vw, 20px);
+    margin-bottom: clamp(20px, 4vw, 25px);
 }
 
 .stat-group {
     background: rgba(45, 27, 91, 0.4);
-    padding: 15px;
+    padding: clamp(12px, 3vw, 15px);
     border-radius: 10px;
     border: 1px solid rgba(108, 92, 231, 0.3);
 }
 
     .stat-group h3 {
         color: #74b9ff;
-        font-size: 16px;
+        font-size: clamp(14px, 3vw, 16px);
         margin-bottom: 10px;
         text-align: center;
         border-bottom: 1px solid rgba(116, 185, 255, 0.3);
@@ -1192,10 +1287,12 @@ body {
     align-items: center;
     margin: 8px 0;
     padding: 5px 0;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 .stat-label {
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px);
     color: #ddd;
     display: flex;
     align-items: center;
@@ -1204,7 +1301,7 @@ body {
 
 .stat-value {
     font-weight: bold;
-    font-size: 16px;
+    font-size: clamp(14px, 3vw, 16px);
     color: #00cec9;
 }
 
@@ -1237,7 +1334,7 @@ body {
 
     .abilities-section h3 {
         color: #74b9ff;
-        font-size: 18px;
+        font-size: clamp(16px, 3.5vw, 18px);
         margin-bottom: 15px;
         text-align: center;
         border-bottom: 2px solid rgba(116, 185, 255, 0.3);
@@ -1254,7 +1351,7 @@ body {
     background: rgba(45, 27, 91, 0.6);
     border: 1px solid rgba(108, 92, 231, 0.4);
     border-radius: 8px;
-    padding: 15px;
+    padding: clamp(12px, 3vw, 15px);
     transition: all 0.3s ease;
 }
 
@@ -1274,16 +1371,18 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 .ability-title {
-    font-size: 16px;
+    font-size: clamp(14px, 3vw, 16px);
     font-weight: bold;
     color: #00cec9;
 }
 
 .ability-cooldown {
-    font-size: 12px;
+    font-size: clamp(10px, 2vw, 12px);
     color: #e74c3c;
     background: rgba(231, 76, 60, 0.2);
     padding: 2px 8px;
@@ -1291,7 +1390,7 @@ body {
 }
 
 .ability-description {
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px);
     color: #ddd;
     line-height: 1.4;
     margin-bottom: 8px;
@@ -1300,8 +1399,9 @@ body {
 .ability-stats {
     display: flex;
     gap: 15px;
-    font-size: 12px;
+    font-size: clamp(10px, 2vw, 12px);
     color: #bbb;
+    flex-wrap: wrap;
 }
 
 .ability-stat {
@@ -1314,19 +1414,21 @@ body {
     background: linear-gradient(45deg, #e74c3c, #c0392b);
     border: none;
     border-radius: 8px;
-    padding: 12px 24px;
+    padding: clamp(10px, 2.5vw, 12px) clamp(20px, 4vw, 24px);
     color: white;
     font-weight: bold;
-    font-size: 14px;
+    font-size: clamp(12px, 2.5vw, 14px);
     cursor: pointer;
     transition: all 0.3s ease;
     display: block;
     margin: 20px auto 0;
     min-width: 120px;
+    min-height: var(--touch-target-min);
     border: 1px solid rgba(231, 76, 60, 0.3);
+    touch-action: manipulation;
 }
 
-    .close-btn:hover {
+    .close-btn:hover, .close-btn:active {
         transform: translateY(-2px);
         box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
         border-color: #e74c3c;
@@ -1335,7 +1437,7 @@ body {
 /* Damage Numbers */
 .damage-number {
     position: absolute;
-    font-size: 20px;
+    font-size: clamp(16px, 4vw, 20px);
     font-weight: bold;
     color: #e74c3c;
     pointer-events: none;
@@ -1351,16 +1453,17 @@ body {
 /* Environment Effect */
 .environment-effect {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: clamp(10px, 2vw, 15px);
+    right: clamp(10px, 2vw, 15px);
     background: rgba(231, 76, 60, 0.9);
-    padding: 8px 12px;
+    padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2vw, 12px);
     border-radius: 6px;
-    font-size: 12px;
+    font-size: clamp(10px, 2vw, 12px);
     font-weight: bold;
     animation: environmentPulse 2s infinite;
     z-index: 200;
     border: 1px solid rgba(231, 76, 60, 0.5);
+    max-width: calc(100vw - 40px);
 }
 
 /* Progress Bar */
@@ -1379,12 +1482,167 @@ body {
     transition: width 0.3s ease;
 }
 
-/* Card Transition Animation */
-.card-transition {
-    animation: cardSlide 0.8s ease-in-out;
+/* Debug styles - Add these temporarily to visualize scroll area */
+.debug-scroll-area .level-layout {
+    border: 2px dashed rgba(255, 0, 0, 0.5);
+    background: rgba(255, 0, 0, 0.1);
 }
 
-/* Keyframe Animations */
+.debug-scroll-area .map-viewport {
+    border: 2px dashed rgba(0, 255, 0, 0.5);
+}
+
+/* Performance optimizations */
+.level-layout * {
+    will-change: auto;
+}
+
+.card-container {
+    transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Ensure proper scrolling on all devices */
+@media (pointer: coarse) {
+    .map-viewport {
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
+/* Mobile specific scrolling enhancements */
+@media (max-width: 768px) {
+    .map-viewport {
+        -webkit-overflow-scrolling: touch;
+        overflow-scrolling: touch;
+        scroll-snap-type: none;
+    }
+
+    .level-layout {
+        margin: 50px; /* Reduced margin for mobile */
+        min-width: calc(150vw) !important;
+        min-height: calc(150vh) !important;
+    }
+}
+
+/* Responsive Breakpoints */
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+    :root {
+        --header-height: 70px;
+        --abilities-panel-height: 130px;
+        --bottom-panel-height: 150px;
+    }
+}
+
+/* Standard Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+    :root {
+        --header-height: 65px;
+        --abilities-panel-height: 125px;
+        --bottom-panel-height: 145px;
+    }
+}
+
+/* Tablet Portrait (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+    :root {
+        --header-height: 60px;
+        --abilities-panel-height: 120px;
+        --bottom-panel-height: 140px;
+    }
+}
+
+/* Mobile Landscape (568px - 767px) */
+@media (min-width: 568px) and (max-width: 767px) {
+    :root {
+        --header-height: 55px;
+        --abilities-panel-height: 110px;
+        --bottom-panel-height: 130px;
+    }
+}
+
+/* Mobile Portrait (max 567px) */
+@media (max-width: 567px) {
+    :root {
+        --header-height: 50px;
+        --abilities-panel-height: 100px;
+        --bottom-panel-height: 120px;
+    }
+
+    .modal-features {
+        grid-template-columns: 1fr;
+    }
+
+    .character-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Landscape Mobile Orientation */
+@media (max-width: 767px) and (orientation: landscape) {
+    :root {
+        --header-height: 45px;
+        --abilities-panel-height: 90px;
+        --bottom-panel-height: 110px;
+    }
+
+    .touch-indicators {
+        display: none; /* Save space in landscape */
+    }
+}
+
+/* Very Small Screens (max 360px) */
+@media (max-width: 360px) {
+    :root {
+        --header-height: 45px;
+        --abilities-panel-height: 95px;
+        --bottom-panel-height: 115px;
+    }
+
+    .abilities-panel {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    }
+}
+
+/* High DPI Displays */
+@media (min-resolution: 144dpi) {
+    .card-tile {
+        border-width: 0.5px;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .level-layout {
+        transition: none !important;
+    }
+}
+
+/* Dark Mode Enhancement */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+    }
+}
+
+/* Enhanced current card highlighting animation */
+@keyframes currentCardGlow {
+    0% {
+        box-shadow: 0 0 20px rgba(52, 152, 219, 0.6), 0 0 40px rgba(52, 152, 219, 0.3);
+    }
+
+    100% {
+        box-shadow: 0 0 30px rgba(52, 152, 219, 0.9), 0 0 60px rgba(52, 152, 219, 0.5);
+    }
+}
+
+/* Animations */
 @keyframes modalEnter {
     0% {
         opacity: 0;
@@ -1533,16 +1791,6 @@ body {
     }
 }
 
-@keyframes currentCardGlow {
-    0% {
-        box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
-    }
-
-    100% {
-        box-shadow: 0 0 30px rgba(52, 152, 219, 0.9);
-    }
-}
-
 @keyframes heroGlow {
     0% {
         box-shadow: 0 0 15px rgba(52, 152, 219, 0.6);
@@ -1678,262 +1926,5 @@ body {
     100% {
         opacity: 1;
         transform: scale(1);
-    }
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-    .modal-content {
-        padding: 25px;
-        margin: 10px;
-    }
-
-    .game-title {
-        font-size: 36px;
-    }
-
-    .game-subtitle {
-        font-size: 18px;
-    }
-
-    .modal-features {
-        grid-template-columns: 1fr;
-    }
-
-    .start-game-btn {
-        min-width: 240px;
-        padding: 18px 30px;
-    }
-
-    .character-avatar {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
-    }
-
-    .story-text {
-        font-size: 14px;
-    }
-
-    .header {
-        padding: 8px;
-        font-size: 12px;
-    }
-
-    .hero-stats {
-        gap: 8px;
-    }
-
-    .abilities-panel {
-        padding: 10px;
-        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-    }
-
-    .ability {
-        padding: 8px 6px;
-        font-size: 10px;
-    }
-
-    .bottom-panel {
-        padding: 8px;
-    }
-
-    .dice {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-    }
-
-    .character-sheet-content {
-        padding: 20px;
-        margin: 10px;
-    }
-
-    .character-stats {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .character-name {
-        font-size: 24px;
-    }
-
-    .character-portrait {
-        width: 60px;
-        height: 60px;
-        font-size: 30px;
-    }
-
-    /* Mobile map controls */
-    .map-controls {
-        top: 10px;
-        right: 10px;
-    }
-
-    .controls-menu-btn {
-        font-size: 12px;
-        padding: 8px 10px;
-        min-width: 100px;
-    }
-
-    .zoom-btn {
-        padding: 4px 6px;
-        font-size: 11px;
-        min-width: 24px;
-        height: 24px;
-    }
-
-    .zoom-level {
-        font-size: 10px;
-        min-width: 35px;
-        padding: 0 6px;
-    }
-
-    .nav-btn {
-        font-size: 10px;
-        padding: 4px 6px;
-        min-height: 24px;
-    }
-
-    .control-label {
-        font-size: 9px;
-    }
-
-    .touch-indicators {
-        bottom: 10px;
-        left: 10px;
-        font-size: 9px;
-        padding: 6px 10px;
-    }
-
-    /* Ensure touch gestures work well */
-    .map-container {
-        touch-action: pan-x pan-y;
-    }
-
-    /* Reduce maximum zoom on mobile to prevent performance issues */
-    .level-layout.zoom-huge,
-    .level-layout.zoom-massive {
-        transform: scale(1.4); /* Cap at 140% on mobile */
-    }
-}
-
-/* Small mobile devices */
-@media (max-width: 480px) {
-    .map-controls {
-        top: 5px;
-        right: 5px;
-    }
-
-    .controls-menu-btn {
-        font-size: 11px;
-        padding: 6px 8px;
-        min-width: 90px;
-    }
-
-    .zoom-controls {
-        gap: 2px;
-    }
-
-    .zoom-btn {
-        padding: 3px 5px;
-        font-size: 10px;
-        min-width: 22px;
-        height: 22px;
-    }
-
-    .zoom-level {
-        font-size: 9px;
-        min-width: 30px;
-        padding: 0 4px;
-    }
-
-    .nav-btn {
-        font-size: 9px;
-        padding: 3px 5px;
-        min-height: 22px;
-    }
-
-    .touch-indicators {
-        font-size: 8px;
-        padding: 4px 8px;
-    }
-
-    .control-group {
-        margin-bottom: 8px;
-    }
-
-    .controls-menu.open {
-        padding: 8px 8px 6px 8px;
-    }
-}
-
-/* Landscape mobile orientation adjustments */
-@media (max-width: 767px) and (orientation: landscape) {
-    .touch-indicators {
-        display: none; /* Hide on landscape mobile to save space */
-    }
-
-    .map-controls {
-        top: 5px;
-        right: 5px;
-    }
-}
-
-/* Very small screens (older phones) - ensure minimum usability */
-@media (max-width: 360px) {
-    :root {
-        --card-size: 280px; /* Still much larger than before (was 180px) */
-        --card-gap: 10px;
-        --tile-font-size: 11px;
-        --map-padding: 15px;
-    }
-
-    .controls-menu-btn {
-        font-size: 10px;
-        padding: 5px 7px;
-        min-width: 80px;
-    }
-
-    .zoom-btn,
-    .nav-btn {
-        font-size: 9px;
-        padding: 2px 4px;
-        min-width: 20px;
-        height: 20px;
-        min-height: 20px;
-    }
-
-    .zoom-level {
-        font-size: 8px;
-        min-width: 25px;
-        padding: 0 3px;
-    }
-}
-
-/* High DPI Screen Support */
-@media (min-resolution: 144dpi) {
-    .card-tile {
-        font-size: 9px;
-    }
-
-    .dice {
-        font-size: 20px;
-    }
-}
-
-/* Dark mode enhancements */
-@media (prefers-color-scheme: dark) {
-    body {
-        background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
-    }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
     }
 }

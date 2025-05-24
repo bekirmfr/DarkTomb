@@ -2,99 +2,90 @@
     constructor() {
         // Game constants
         this.GRID_SIZE = 7;
-        this.VISION_RADIUS = 2; // Increased from 1 for better UX
+        this.VISION_RADIUS = 2;
         this.BASE_ENGAGEMENT_RANGE = 2;
         this.MAX_ENVIRONMENT_COOLDOWN = 5;
-        this.MOVEMENT_ADJACENCY_PENALTY = 2; // Fixed penalty instead of all moves
+        this.MOVEMENT_ADJACENCY_PENALTY = 2;
 
-        // Zoom system - expanded for better navigation
+        // Enhanced responsive system
+        this.viewport = {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            updateCallback: null
+        };
+
+        // Dynamic zoom system with responsive levels
         this.zoomLevels = ['zoom-tiny', 'zoom-small', 'zoom-normal', 'zoom-large', 'zoom-huge', 'zoom-massive'];
-        this.currentZoom = 2; // Index of current zoom level (zoom-normal)
+        this.currentZoom = 2; // Start at normal
         this.zoomLabels = ['60%', '80%', '100%', '130%', '160%', '200%'];
 
-        // Map navigation system
+        // Enhanced map navigation
         this.isDragging = false;
         this.dragStart = { x: 0, y: 0 };
         this.mapPosition = { x: 0, y: 0 };
         this.touchStartDistance = 0;
         this.initialZoom = this.currentZoom;
+        this.lastTouchTime = 0;
+
+        // Enhanced responsive card sizing
+        this.cardSizing = {
+            maxWidth: 0,
+            maxHeight: 0,
+            optimalSize: 0,
+            padding: 20,
+            headerHeight: 60,
+            bottomPanelHeight: 140
+        };
 
         this.hero = {
-            x: 3, y: 3, // Position within current card
-            cardX: 0, cardY: 0, // Current card coordinates
+            x: 3, y: 3,
+            cardX: 0, cardY: 0,
             hp: 100, maxHp: 100,
             armor: 5, baseArmor: 5,
             move: 3, level: 1, xp: 0,
             bonusArmor: 0, bonusArmorTurns: 0,
             remainingMoves: 3,
             hasActed: false,
-            // Character information
             name: "Kael Shadowbane",
             class: "Dungeon Explorer",
             background: "Once a noble knight, now explores the dark depths of Bloodthorn Island seeking ancient treasures and redemption."
         };
 
         this.currentLevel = 1;
-        this.activeCards = new Map(); // Map of "x,y" -> card data
-        this.cardDecks = {}; // Level -> array of card templates
-        this.levelLayouts = {}; // Level -> array of card coordinates
-        this.fogOfWar = new Map(); // Map of "cardX,cardY" -> Set of "x,y" positions
+        this.activeCards = new Map();
+        this.cardDecks = {};
+        this.levelLayouts = {};
+        this.fogOfWar = new Map();
 
         this.selectedAbility = null;
         this.abilityCooldowns = {};
         this.environmentEffect = null;
         this.environmentTurns = 0;
-        this.environmentCooldown = 0; // Cooldown for environmental effects
+        this.environmentCooldown = 0;
         this.turn = 1;
-        this.turnPhase = 'hero'; // 'hero', 'enemy', 'environment'
+        this.turnPhase = 'hero';
         this.mode = 'move';
 
-        // Consolidated abilities (removed duplicates)
         this.abilities = {
             strike: {
-                modifier: 2,
-                damage: 8,
-                range: 1,
-                type: 'single',
-                cooldown: 0,
-                name: "Strike",
-                description: "A precise melee attack that deals consistent damage to adjacent enemies."
+                modifier: 2, damage: 8, range: 1, type: 'single', cooldown: 0,
+                name: "Strike", description: "A precise melee attack that deals consistent damage to adjacent enemies."
             },
             fireball: {
-                modifier: 4,
-                damage: 12,
-                range: 3,
-                type: 'single',
-                cooldown: 2,
-                name: "Fireball",
-                description: "Launch a blazing projectile that deals high damage at range. Requires line of sight."
+                modifier: 4, damage: 12, range: 3, type: 'single', cooldown: 2,
+                name: "Fireball", description: "Launch a blazing projectile that deals high damage at range. Requires line of sight."
             },
             heal: {
-                modifier: 0,
-                damage: -15,
-                range: 0,
-                type: 'self',
-                cooldown: 3,
-                name: "Heal",
-                description: "Channel divine energy to restore your health and mend wounds."
+                modifier: 0, damage: -15, range: 0, type: 'self', cooldown: 3,
+                name: "Heal", description: "Channel divine energy to restore your health and mend wounds."
             },
             charge: {
-                modifier: 3,
-                damage: 10,
-                range: 2,
-                type: 'charge',
-                cooldown: 2,
-                name: "Charge",
-                description: "Rush forward to strike an enemy with tremendous force, combining movement and attack."
+                modifier: 3, damage: 10, range: 2, type: 'charge', cooldown: 2,
+                name: "Charge", description: "Rush forward to strike an enemy with tremendous force, combining movement and attack."
             },
             shield: {
-                modifier: 0,
-                damage: 0,
-                range: 0,
-                type: 'buff',
-                cooldown: 4,
-                name: "Shield",
-                description: "Raise your defenses, gaining bonus armor that protects against incoming attacks."
+                modifier: 0, damage: 0, range: 0, type: 'buff', cooldown: 4,
+                name: "Shield", description: "Raise your defenses, gaining bonus armor that protects against incoming attacks."
             }
         };
 
@@ -107,19 +98,250 @@
         ];
 
         this.initializeLevels();
+        this.setupResponsiveSystem();
         this.initializeGame();
         this.bindEvents();
     }
 
+    // Enhanced setupResponsiveSystem for better desktop experience
+    setupResponsiveSystem() {
+        // Calculate optimal card sizing based on viewport
+        this.calculateOptimalCardSize();
+        this.updateCSSCustomProperties();
+
+        // Setup viewport resize handling with desktop optimizations
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.handleViewportResize();
+            }, 250);
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.handleViewportResize();
+            }, 500);
+        });
+
+        // Enhanced touch prevention for desktop
+        const isDesktop = window.innerWidth >= 1024;
+        if (!isDesktop) {
+            // Prevent zoom on double tap for mobile/tablet only
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+        }
+
+        // Setup viewport meta tag
+        this.setupViewportMeta();
+
+        // Setup CSS foundation
+        this.setupCSSFoundation();
+
+        // Add global error handling
+        this.setupErrorHandling();
+        
+        // Add debug mode for development
+        this.setupDebugMode();
+    }
+
+    // Enhanced calculateOptimalCardSize for better desktop experience
+    calculateOptimalCardSize() {
+        this.viewport.width = window.innerWidth;
+        this.viewport.height = window.innerHeight;
+
+        const isDesktop = this.viewport.width >= 1024;
+        const isLargeDesktop = this.viewport.width >= 1440;
+        
+        // Desktop-optimized calculations
+        if (isLargeDesktop) {
+            this.cardSizing.optimalSize = 480; // Large desktop
+            this.cardSizing.padding = 60;
+            this.cardSizing.headerHeight = 70;
+            this.cardSizing.bottomPanelHeight = 150;
+        } else if (isDesktop) {
+            this.cardSizing.optimalSize = 420; // Standard desktop
+            this.cardSizing.padding = 50;
+            this.cardSizing.headerHeight = 65;
+            this.cardSizing.bottomPanelHeight = 145;
+        } else {
+            // Mobile/tablet calculations (existing logic)
+            const availableWidth = this.viewport.width - (this.cardSizing.padding * 2);
+            const availableHeight = this.viewport.height -
+                this.cardSizing.headerHeight -
+                this.cardSizing.bottomPanelHeight -
+                (this.cardSizing.padding * 2);
+
+            const maxCardWidth = availableWidth * 0.85;
+            const maxCardHeight = availableHeight * 0.85;
+
+            this.cardSizing.optimalSize = Math.min(maxCardWidth, maxCardHeight);
+            
+            const minSize = 280;
+            const maxSize = 380;
+            this.cardSizing.optimalSize = Math.max(minSize, Math.min(maxSize, this.cardSizing.optimalSize));
+        }
+
+        const tileSize = this.cardSizing.optimalSize / 7;
+        const optimalTileFont = Math.max(10, Math.min(20, tileSize * 0.3));
+
+        this.cardSizing.tileFont = optimalTileFont;
+        this.cardSizing.maxWidth = this.viewport.width * 0.8;
+        this.cardSizing.maxHeight = this.viewport.height * 0.8;
+    }
+
+    // Enhanced updateCSSCustomProperties with desktop optimizations
+    updateCSSCustomProperties() {
+        const root = document.documentElement;
+        const isDesktop = window.innerWidth >= 1024;
+
+        const cardGap = Math.max(12, this.cardSizing.optimalSize * 0.06);
+        const mapPadding = Math.max(20, this.cardSizing.optimalSize * 0.1);
+
+        root.style.setProperty('--card-size', `${this.cardSizing.optimalSize}px`);
+        //root.style.setProperty('--card-gap', `${cardGap}px`);
+        root.style.setProperty('--tile-font-size', `${this.cardSizing.tileFont}px`);
+        root.style.setProperty('--map-padding', `${mapPadding}px`);
+
+        // Enhanced zoom factors for desktop
+        const baseScale = this.cardSizing.optimalSize / (isDesktop ? 420 : 350);
+        const zoomFactors = {
+            'zoom-tiny': 0.6 * baseScale,
+            'zoom-small': 0.8 * baseScale,
+            'zoom-normal': 1.0 * baseScale,
+            'zoom-large': 1.3 * baseScale,
+            'zoom-huge': 1.6 * baseScale,
+            'zoom-massive': 2.0 * baseScale
+        };
+
+        Object.entries(zoomFactors).forEach(([className, scale]) => {
+            root.style.setProperty(`--${className}-scale`, scale);
+        });
+        
+        // Desktop-specific optimizations
+        if (isDesktop) {
+            root.style.setProperty('--header-height', `${this.cardSizing.headerHeight}px`);
+            root.style.setProperty('--bottom-panel-height', `${this.cardSizing.bottomPanelHeight}px`);
+        }
+    }
+
+    // Add debug mode for development
+    setupDebugMode() {
+        // Enable debug mode with URL parameter or console command
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('debug') === 'scroll' || window.DEBUG_SCROLL) {
+            document.body.classList.add('debug-scroll');
+            console.log('🔍 Debug mode enabled: Scroll areas are now visible');
+            
+            // Add debug info to window for console access
+            window.gameDebug = {
+                centerOnCurrentCard: () => this.centerOnCurrentCard(),
+                centerOnHero: () => this.centerOnHero(),
+                updateScrollableArea: () => this.updateScrollableArea(),
+                logScrollInfo: () => {
+                    const mapViewport = document.getElementById('map-viewport');
+                    if (mapViewport) {
+                        console.log('Current scroll info:', {
+                            scrollLeft: mapViewport.scrollLeft,
+                            scrollTop: mapViewport.scrollTop,
+                            scrollWidth: mapViewport.scrollWidth,
+                            scrollHeight: mapViewport.scrollHeight,
+                            clientWidth: mapViewport.clientWidth,
+                            clientHeight: mapViewport.clientHeight,
+                            zoom: this.currentZoom,
+                            zoomFactor: this.getZoomFactor()
+                        });
+                    }
+                }
+            };
+        }
+    }
+
+    setupViewportMeta() {
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (!viewport) {
+            viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            document.head.appendChild(viewport);
+        }
+        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    }
+
+    setupCSSFoundation() {
+        const root = document.documentElement;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        root.style.setProperty('--vh', `${vh * 0.01}px`);
+        root.style.setProperty('--vw', `${vw * 0.01}px`);
+
+        const updateViewportUnits = () => {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            root.style.setProperty('--vh', `${vh * 0.01}px`);
+            root.style.setProperty('--vw', `${vw * 0.01}px`);
+        };
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(updateViewportUnits, 250);
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateViewportUnits, 500);
+        });
+    }
+
+    setupErrorHandling() {
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            if (this.showMessage) {
+                this.showMessage('An error occurred. The game will continue, but you may want to refresh if issues persist.');
+            }
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            event.preventDefault();
+        });
+    }
+
+    // Enhanced handleViewportResize to fix scrolling on resize
+    handleViewportResize() {
+        this.calculateOptimalCardSize();
+        this.updateCSSCustomProperties();
+        
+        // Update scrollable area after resize
+        setTimeout(() => {
+            this.updateScrollableArea();
+            this.renderMap();
+            this.updateTouchIndicators();
+        }, 100);
+
+        // Reset zoom if too high for new viewport
+        if (this.currentZoom > 2 && this.viewport.width < 768) {
+            this.currentZoom = 2;
+            this.updateZoom();
+        }
+        
+        // Re-center on current card if on desktop
+        if (window.innerWidth >= 1024) {
+            setTimeout(() => this.centerOnCurrentCard(), 300);
+        }
+    }
+
     initializeLevels() {
-        // Define level layouts - which card coordinates exist
         this.levelLayouts = {
             1: [
-                { x: 0, y: 0 },   // Starting card
-                { x: 1, y: 0 },   // East
-                { x: 1, y: 1 },   // Southeast
-                { x: 0, y: 1 },   // South
-                { x: 0, y: -1 }   // North
+                { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 },
+                { x: 0, y: 1 }, { x: 0, y: -1 }
             ],
             2: [
                 { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
@@ -133,8 +355,6 @@
                 { x: 1, y: 2 }, { x: 2, y: 2 }
             ]
         };
-
-        // Generate card templates for each level
         this.generateCardDecks();
     }
 
@@ -142,7 +362,6 @@
         for (let level = 1; level <= 3; level++) {
             this.cardDecks[level] = [];
             const cardCount = this.levelLayouts[level].length;
-
             for (let i = 0; i < cardCount; i++) {
                 this.cardDecks[level].push(this.generateCardTemplate(level));
             }
@@ -150,82 +369,51 @@
     }
 
     generateCardTemplate(level) {
-        const card = {
-            terrain: [],
-            monsters: [],
-            treasures: []
-        };
+        const card = { terrain: [], monsters: [], treasures: [] };
 
-        // Generate terrain with better distribution
         for (let y = 0; y < this.GRID_SIZE; y++) {
             card.terrain[y] = [];
             for (let x = 0; x < this.GRID_SIZE; x++) {
-                // Reduce wall density for better movement
-                if (Math.random() < 0.12) {
-                    card.terrain[y][x] = 'wall';
-                } else {
-                    card.terrain[y][x] = 'floor';
-                }
+                card.terrain[y][x] = Math.random() < 0.12 ? 'wall' : 'floor';
             }
         }
 
-        // Generate monsters for this card
         const monsterCount = Math.max(1, 2 + Math.floor(level / 2));
         const monsterTypes = [
-            { name: 'Goblin', attackRange: 1 },
-            { name: 'Orc', attackRange: 1 },
-            { name: 'Skeleton', attackRange: 2 },
-            { name: 'Spider', attackRange: 1 },
-            { name: 'Wraith', attackRange: 2 }, // New monster type
-            { name: 'Troll', attackRange: 1 }   // New monster type
+            { name: 'Goblin', attackRange: 1 }, { name: 'Orc', attackRange: 1 },
+            { name: 'Skeleton', attackRange: 2 }, { name: 'Spider', attackRange: 1 },
+            { name: 'Wraith', attackRange: 2 }, { name: 'Troll', attackRange: 1 }
         ];
 
         for (let i = 0; i < monsterCount; i++) {
-            let x, y;
-            let attempts = 0;
+            let x, y, attempts = 0;
             do {
                 x = Math.floor(Math.random() * this.GRID_SIZE);
                 y = Math.floor(Math.random() * this.GRID_SIZE);
                 attempts++;
-            } while (
-                (card.terrain[y][x] === 'wall' ||
-                    card.monsters.some(m => m.x === x && m.y === y)) &&
-                attempts < 50
-            );
+            } while ((card.terrain[y][x] === 'wall' || card.monsters.some(m => m.x === x && m.y === y)) && attempts < 50);
 
             if (attempts < 50) {
                 const monsterType = monsterTypes[Math.floor(Math.random() * monsterTypes.length)];
                 card.monsters.push({
-                    x, y,
-                    hp: 20 + (level * 5),
-                    maxHp: 20 + (level * 5),
-                    armor: 3 + Math.floor(level / 2),
-                    damage: 6 + level,
-                    type: monsterType.name,
-                    attackRange: monsterType.attackRange,
-                    engaged: false,
-                    cardX: null, // Will be set when card is placed
-                    cardY: null,
-                    unitType: 'enemy' // For character sheet display
+                    x, y, hp: 20 + (level * 5), maxHp: 20 + (level * 5),
+                    armor: 3 + Math.floor(level / 2), damage: 6 + level,
+                    type: monsterType.name, attackRange: monsterType.attackRange,
+                    engaged: false, cardX: null, cardY: null, unitType: 'enemy'
                 });
             }
         }
 
-        // Generate treasures
         const treasureCount = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < treasureCount; i++) {
-            let x, y;
-            let attempts = 0;
+            let x, y, attempts = 0;
             do {
                 x = Math.floor(Math.random() * this.GRID_SIZE);
                 y = Math.floor(Math.random() * this.GRID_SIZE);
                 attempts++;
-            } while (
-                (card.terrain[y][x] === 'wall' ||
-                    card.monsters.some(m => m.x === x && m.y === y) ||
-                    card.treasures.some(t => t.x === x && t.y === y)) &&
-                attempts < 50
-            );
+            } while ((card.terrain[y][x] === 'wall' ||
+                card.monsters.some(m => m.x === x && m.y === y) ||
+                card.treasures.some(t => t.x === x && t.y === y)) && attempts < 50);
 
             if (attempts < 50) {
                 card.treasures.push({ x, y, collected: false });
@@ -236,13 +424,8 @@
     }
 
     rotateCard(card, rotation) {
-        const rotated = {
-            terrain: [],
-            monsters: [],
-            treasures: []
-        };
+        const rotated = { terrain: [], monsters: [], treasures: [] };
 
-        // Rotate terrain
         for (let y = 0; y < this.GRID_SIZE; y++) {
             rotated.terrain[y] = [];
             for (let x = 0; x < this.GRID_SIZE; x++) {
@@ -251,68 +434,42 @@
             }
         }
 
-        // Rotate monsters
         card.monsters.forEach(monster => {
             const [newX, newY] = this.rotateCoordinates(monster.x, monster.y, rotation);
-            rotated.monsters.push({
-                ...monster,
-                x: newX,
-                y: newY
-            });
+            rotated.monsters.push({ ...monster, x: newX, y: newY });
         });
 
-        // Rotate treasures
         card.treasures.forEach(treasure => {
             const [newX, newY] = this.rotateCoordinates(treasure.x, treasure.y, rotation);
-            rotated.treasures.push({
-                ...treasure,
-                x: newX,
-                y: newY
-            });
+            rotated.treasures.push({ ...treasure, x: newX, y: newY });
         });
 
         return rotated;
     }
 
     rotateCoordinates(x, y, rotation) {
-        const center = Math.floor(this.GRID_SIZE / 2); // 7x7 grid center
+        const center = Math.floor(this.GRID_SIZE / 2);
         const relX = x - center;
         const relY = y - center;
 
         let newRelX, newRelY;
         switch (rotation) {
-            case 0: // No rotation
-                newRelX = relX;
-                newRelY = relY;
-                break;
-            case 1: // 90° clockwise
-                newRelX = -relY;
-                newRelY = relX;
-                break;
-            case 2: // 180°
-                newRelX = -relX;
-                newRelY = -relY;
-                break;
-            case 3: // 270° clockwise
-                newRelX = relY;
-                newRelY = -relX;
-                break;
-            default:
-                newRelX = relX;
-                newRelY = relY;
+            case 0: newRelX = relX; newRelY = relY; break;
+            case 1: newRelX = -relY; newRelY = relX; break;
+            case 2: newRelX = -relX; newRelY = -relY; break;
+            case 3: newRelX = relY; newRelY = -relX; break;
+            default: newRelX = relX; newRelY = relY;
         }
 
         return [newRelX + center, newRelY + center];
     }
 
+    // Enhanced initializeGame with better positioning
     initializeGame() {
         this.activeCards.clear();
         this.fogOfWar.clear();
-
-        // Place starting card at (0,0)
         this.placeCard(0, 0);
 
-        // Ensure hero starting position is clear
         const startingCard = this.activeCards.get('0,0');
         if (startingCard) {
             startingCard.terrain[3][3] = 'floor';
@@ -322,43 +479,42 @@
         this.updateVisibility();
         this.updateMonsterEngagement();
         this.updateDisplay();
+        
+        // Enhanced rendering and positioning for desktop
         this.renderMap();
+        
+        // Auto-center after initial load
+        setTimeout(() => {
+            this.updateScrollableArea();
+            const isDesktop = window.innerWidth >= 1024;
+            if (isDesktop) {
+                setTimeout(() => this.centerOnCurrentCard(), 300);
+            }
+        }, 200);
     }
 
     placeCard(cardX, cardY) {
         const cardKey = `${cardX},${cardY}`;
         if (this.activeCards.has(cardKey)) return;
 
-        // Check if this card position exists in current level
         const levelLayout = this.levelLayouts[this.currentLevel];
         const cardExists = levelLayout.some(pos => pos.x === cardX && pos.y === cardY);
         if (!cardExists) return;
 
-        // Get card index in layout
         const cardIndex = levelLayout.findIndex(pos => pos.x === cardX && pos.y === cardY);
         if (cardIndex === -1) return;
 
-        // Get card template and rotate randomly
         const originalCard = this.cardDecks[this.currentLevel][cardIndex];
         const rotation = Math.floor(Math.random() * 4);
         const rotatedCard = this.rotateCard(originalCard, rotation);
 
-        // Set card coordinates for monsters
         rotatedCard.monsters.forEach(monster => {
             monster.cardX = cardX;
             monster.cardY = cardY;
         });
 
-        this.activeCards.set(cardKey, {
-            ...rotatedCard,
-            cardX,
-            cardY,
-            rotation
-        });
-
-        // Initialize fog for this card
+        this.activeCards.set(cardKey, { ...rotatedCard, cardX, cardY, rotation });
         this.fogOfWar.set(cardKey, new Set());
-
         this.showMessage(`New area discovered! Card placed at (${cardX},${cardY})`);
     }
 
@@ -394,7 +550,6 @@
     updateVisibility() {
         const { cardX, cardY, x: heroX, y: heroY } = this.hero;
 
-        // Get or create fog set for current card
         const cardKey = `${cardX},${cardY}`;
         if (!this.fogOfWar.has(cardKey)) {
             this.fogOfWar.set(cardKey, new Set());
@@ -439,20 +594,13 @@
             phaseElement.classList.add(this.turnPhase);
 
             switch (this.turnPhase) {
-                case 'hero':
-                    phaseElement.textContent = 'Hero Phase';
-                    break;
-                case 'enemy':
-                    phaseElement.textContent = 'Enemy Phase';
-                    break;
-                case 'environment':
-                    phaseElement.textContent = 'Environment Phase';
-                    break;
+                case 'hero': phaseElement.textContent = 'Hero Phase'; break;
+                case 'enemy': phaseElement.textContent = 'Enemy Phase'; break;
+                case 'environment': phaseElement.textContent = 'Environment Phase'; break;
             }
         }
     }
 
-    // Clear event listeners to prevent memory leaks
     clearTileEventListeners() {
         document.querySelectorAll('.card-tile').forEach(tile => {
             const newTile = tile.cloneNode(true);
@@ -461,7 +609,8 @@
     }
 
     bindEvents() {
-        // Ability selection
+        this.setupMapNavigation();
+
         document.querySelectorAll('.ability').forEach(ability => {
             ability.addEventListener('click', (e) => {
                 const abilityName = e.currentTarget.dataset.ability;
@@ -475,7 +624,6 @@
             });
         });
 
-        // Action buttons
         const moveBtn = document.getElementById('move-btn');
         if (moveBtn) {
             moveBtn.addEventListener('click', () => {
@@ -484,7 +632,6 @@
                     this.selectedAbility = null;
                     this.highlightMovementRange();
                     this.updateModeDisplay();
-                    // Clear ability selection
                     document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
                 }
             });
@@ -498,7 +645,6 @@
                     this.selectedAbility = 'strike';
                     this.highlightAbilityRange();
                     this.updateModeDisplay();
-                    // Highlight strike ability
                     document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
                     const strikeAbility = document.querySelector(`[data-ability="strike"]`);
                     if (strikeAbility) strikeAbility.classList.add('selected');
@@ -523,44 +669,22 @@
             });
         }
 
-        // Add keyboard controls
         document.addEventListener('keydown', (e) => {
             if (this.turnPhase !== 'hero') return;
 
             switch (e.key) {
-                case 'ArrowUp':
-                case 'w':
-                case 'W':
-                    e.preventDefault();
-                    this.tryMoveHero(0, -1);
-                    break;
-                case 'ArrowDown':
-                case 's':
-                case 'S':
-                    e.preventDefault();
-                    this.tryMoveHero(0, 1);
-                    break;
-                case 'ArrowLeft':
-                case 'a':
-                case 'A':
-                    e.preventDefault();
-                    this.tryMoveHero(-1, 0);
-                    break;
-                case 'ArrowRight':
-                case 'd':
-                case 'D':
-                    e.preventDefault();
-                    this.tryMoveHero(1, 0);
-                    break;
+                case 'ArrowUp': case 'w': case 'W':
+                    e.preventDefault(); this.tryMoveHero(0, -1); break;
+                case 'ArrowDown': case 's': case 'S':
+                    e.preventDefault(); this.tryMoveHero(0, 1); break;
+                case 'ArrowLeft': case 'a': case 'A':
+                    e.preventDefault(); this.tryMoveHero(-1, 0); break;
+                case 'ArrowRight': case 'd': case 'D':
+                    e.preventDefault(); this.tryMoveHero(1, 0); break;
                 case ' ':
-                    e.preventDefault();
-                    this.endHeroTurn();
-                    break;
-                case 'c':
-                case 'C':
-                    e.preventDefault();
-                    this.showCharacterSheet();
-                    break;
+                    e.preventDefault(); this.endHeroTurn(); break;
+                case 'c': case 'C':
+                    e.preventDefault(); this.showCharacterSheet(); break;
                 case 'Escape':
                     e.preventDefault();
                     this.clearAllHighlights();
@@ -568,24 +692,15 @@
                     this.selectedAbility = null;
                     document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
                     break;
-                case '=':
-                case '+':
-                    e.preventDefault();
-                    this.zoomIn();
-                    break;
-                case '-':
-                case '_':
-                    e.preventDefault();
-                    this.zoomOut();
-                    break;
+                case '=': case '+':
+                    e.preventDefault(); this.zoomIn(); break;
+                case '-': case '_':
+                    e.preventDefault(); this.zoomOut(); break;
                 case '0':
-                    e.preventDefault();
-                    this.resetZoom();
-                    break;
+                    e.preventDefault(); this.resetZoom(); break;
             }
         });
 
-        // Controls menu toggle
         const menuBtn = document.getElementById('controls-menu-btn');
         const menu = document.getElementById('controls-menu');
 
@@ -602,34 +717,491 @@
             });
         }
 
-        // Zoom controls
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
         const zoomResetBtn = document.getElementById('zoom-reset');
         const centerCurrentBtn = document.getElementById('center-current');
         const centerHeroBtn = document.getElementById('center-hero');
 
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => this.zoomIn());
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        if (zoomResetBtn) zoomResetBtn.addEventListener('click', () => this.resetZoom());
+        if (centerCurrentBtn) centerCurrentBtn.addEventListener('click', () => this.centerOnCurrentCard());
+        if (centerHeroBtn) centerHeroBtn.addEventListener('click', () => this.centerOnHero());
+
+        this.updateTouchIndicators();
+    }
+
+    setupMapNavigation() {
+        const mapViewport = document.getElementById('map-viewport');
+        const mapContainer = document.querySelector('.map-container');
+
+        if (!mapViewport || !mapContainer) return;
+
+        // Enhanced mouse controls with better drag detection
+        mapContainer.addEventListener('mousedown', (e) => this.startDrag(e), { passive: false });
+        document.addEventListener('mousemove', (e) => this.handleDrag(e), { passive: false });
+        document.addEventListener('mouseup', () => this.endDrag());
+        mapContainer.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+
+        // Enhanced touch controls with proper event handling
+        mapContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        mapContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        mapContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        mapContainer.addEventListener('touchcancel', () => this.handleTouchEnd());
+
+        // Prevent context menu and unwanted gestures
+        mapContainer.addEventListener('contextmenu', (e) => {
+            if (this.isDragging) e.preventDefault();
+        });
+
+        // Prevent iOS Safari gesture conflicts
+        mapContainer.addEventListener('gesturestart', (e) => e.preventDefault());
+        mapContainer.addEventListener('gesturechange', (e) => e.preventDefault());
+        mapContainer.addEventListener('gestureend', (e) => e.preventDefault());
+
+        // Prevent text selection during drag
+        mapContainer.addEventListener('selectstart', (e) => {
+            if (this.isDragging) e.preventDefault();
+        });
+
+        // Prevent drag on images/elements
+        mapContainer.addEventListener('dragstart', (e) => e.preventDefault());
+    }
+
+    startDrag(e) {
+        if (e.button !== 0) return; // Only left mouse button
+
+        this.isDragging = true;
+        this.dragStart.x = e.clientX;
+        this.dragStart.y = e.clientY;
+
+        const mapContainer = document.querySelector('.map-container');
+        if (mapContainer) {
+            mapContainer.style.cursor = 'grabbing';
+            mapContainer.style.userSelect = 'none';
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    handleDrag(e) {
+        if (!this.isDragging) return;
+
+        const deltaX = e.clientX - this.dragStart.x;
+        const deltaY = e.clientY - this.dragStart.y;
+
+        // Only process if there's meaningful movement
+        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+            this.scrollMap(deltaX, deltaY);
+            this.dragStart.x = e.clientX;
+            this.dragStart.y = e.clientY;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    endDrag() {
+        if (!this.isDragging) return;
+
+        this.isDragging = false;
+        const mapContainer = document.querySelector('.map-container');
+        if (mapContainer) {
+            mapContainer.style.cursor = 'grab';
+            mapContainer.style.userSelect = '';
+        }
+    }
+
+    handleTouchStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.touches.length === 1) {
+            // Single touch - start drag
+            const touch = e.touches[0];
+            this.isDragging = true;
+            this.dragStart.x = touch.clientX;
+            this.dragStart.y = touch.clientY;
+
+            const mapContainer = document.querySelector('.map-container');
+            if (mapContainer) {
+                mapContainer.style.cursor = 'grabbing';
+            }
+        } else if (e.touches.length === 2) {
+            // Two finger pinch - start zoom
+            this.isDragging = false;
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            this.touchStartDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+            this.initialZoom = this.currentZoom;
+
+            this.pinchCenter = {
+                x: (touch1.clientX + touch2.clientX) / 2,
+                y: (touch1.clientY + touch2.clientY) / 2
+            };
+        }
+    }
+
+    handleTouchMove(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.touches.length === 1 && this.isDragging) {
+            // Single touch drag
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - this.dragStart.x;
+            const deltaY = touch.clientY - this.dragStart.y;
+
+            // Only process if there's meaningful movement
+            if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+                this.scrollMap(deltaX, deltaY);
+                this.dragStart.x = touch.clientX;
+                this.dragStart.y = touch.clientY;
+            }
+        } else if (e.touches.length === 2) {
+            // Pinch to zoom
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+
+            if (this.touchStartDistance > 0) {
+                const zoomFactor = currentDistance / this.touchStartDistance;
+                const newZoomIndex = Math.round(this.initialZoom + (zoomFactor - 1) * 3);
+                const clampedZoom = Math.max(0, Math.min(this.zoomLevels.length - 1, newZoomIndex));
+
+                if (clampedZoom !== this.currentZoom) {
+                    this.currentZoom = clampedZoom;
+                    this.updateZoom();
+                }
+            }
+        }
+    }
+
+    handleTouchEnd(e) {
+        this.isDragging = false;
+        this.touchStartDistance = 0;
+
+        const mapContainer = document.querySelector('.map-container');
+        if (mapContainer) {
+            mapContainer.style.cursor = 'grab';
+        }
+
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }
+
+    handleWheel(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 1 : -1;
+        if (delta > 0 && this.currentZoom < this.zoomLevels.length - 1) {
+            this.zoomIn();
+        } else if (delta < 0 && this.currentZoom > 0) {
+            this.zoomOut();
+        }
+    }
+
+    // Enhanced scrollMap with better momentum and bounds
+    scrollMap(deltaX, deltaY) {
+        const mapViewport = document.getElementById('map-viewport');
+        if (!mapViewport) return;
+
+        // Calculate momentum factor based on zoom and device type
+        const zoomFactor = this.getZoomFactor();
+        const isDesktop = window.innerWidth >= 1024;
+        const baseMomentum = isDesktop ? 1.2 : 1.0;
+        const momentumFactor = baseMomentum * (1 + (this.currentZoom * 0.1));
+
+        // Calculate new scroll positions with momentum
+        const newScrollLeft = mapViewport.scrollLeft - (deltaX * momentumFactor);
+        const newScrollTop = mapViewport.scrollTop - (deltaY * momentumFactor);
+
+        // Get maximum scroll positions
+        const maxScrollLeft = Math.max(0, mapViewport.scrollWidth - mapViewport.clientWidth);
+        const maxScrollTop = Math.max(0, mapViewport.scrollHeight - mapViewport.clientHeight);
+
+        // Apply scrolling with bounds checking
+        mapViewport.scrollLeft = Math.max(0, Math.min(maxScrollLeft, newScrollLeft));
+        mapViewport.scrollTop = Math.max(0, Math.min(maxScrollTop, newScrollTop));
+    }
+
+    // Helper method to get current zoom factor
+    getZoomFactor() {
+        const zoomFactors = [0.6, 0.8, 1.0, 1.3, 1.6, 2.0];
+        return zoomFactors[this.currentZoom] || 1.0;
+    }
+
+    zoomIn() {
+        if (this.currentZoom < this.zoomLevels.length - 1) {
+            this.currentZoom++;
+            this.updateZoom();
+        }
+    }
+
+    zoomOut() {
+        if (this.currentZoom > 0) {
+            this.currentZoom--;
+            this.updateZoom();
+        }
+    }
+
+    resetZoom() {
+        this.currentZoom = 2;
+        this.updateZoom();
+    }
+
+    // Enhanced updateZoom method to fix scrollable area
+    updateZoom() {
+        const levelLayout = document.getElementById('level-layout');
+        const zoomLabel = document.getElementById('zoom-level');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+
+        if (levelLayout) {
+            // Remove all zoom classes
+            this.zoomLevels.forEach(zoom => levelLayout.classList.remove(zoom));
+            // Add current zoom class
+            levelLayout.classList.add(this.zoomLevels[this.currentZoom]);
+            
+            // Force layout recalculation after zoom change
+            setTimeout(() => {
+                this.updateScrollableArea();
+            }, 50);
+        }
+
+        if (zoomLabel) {
+            zoomLabel.textContent = this.zoomLabels[this.currentZoom];
+        }
+
+        // Update button states
         if (zoomInBtn) {
-            zoomInBtn.addEventListener('click', () => this.zoomIn());
+            zoomInBtn.disabled = this.currentZoom >= this.zoomLevels.length - 1;
         }
         if (zoomOutBtn) {
-            zoomOutBtn.addEventListener('click', () => this.zoomOut());
+            zoomOutBtn.disabled = this.currentZoom <= 0;
         }
-        if (zoomResetBtn) {
-            zoomResetBtn.addEventListener('click', () => this.resetZoom());
-        }
-        if (centerCurrentBtn) {
-            centerCurrentBtn.addEventListener('click', () => this.centerOnCurrentCard());
-        }
-        if (centerHeroBtn) {
-            centerHeroBtn.addEventListener('click', () => this.centerOnHero());
-        }
+    }
 
-        // Map dragging and touch controls
-        this.setupMapNavigation();
+    // Enhanced updateScrollableArea method
+    updateScrollableArea() {
+        const mapViewport = document.getElementById('map-viewport');
+        const levelLayout = document.getElementById('level-layout');
+        
+        if (!mapViewport || !levelLayout) return;
 
-        // Hide touch indicators on desktop
-        this.updateTouchIndicators();
+        // Get current zoom factor
+        const zoomFactor = this.getZoomFactor();
+        
+        // Calculate the layout size based on current level
+        const { gridWidth, gridHeight } = this.calculateLevelGridLayout();
+        const cardSize = this.cardSizing ? this.cardSizing.optimalSize : 380;
+        const cardGap = Math.max(12, cardSize * 0.05);
+        
+        // Calculate total layout dimensions with zoom
+        const layoutWidth = (gridWidth * cardSize + (gridWidth - 1) * cardGap) * zoomFactor;
+        const layoutHeight = (gridHeight * cardSize + (gridHeight - 1) * cardGap) * zoomFactor;
+        
+        // Ensure viewport can scroll in all directions - increase multiplier for desktop
+        const isDesktop = window.innerWidth >= 1024;
+        const multiplier = isDesktop ? 3 : 2;
+        
+        const minWidth = mapViewport.clientWidth * multiplier;
+        const minHeight = mapViewport.clientHeight * multiplier;
+        
+        const finalWidth = Math.max(layoutWidth, minWidth);
+        const finalHeight = Math.max(layoutHeight, minHeight);
+        
+        // Apply size to enable proper scrolling
+        levelLayout.style.minWidth = `${finalWidth}px`;
+        levelLayout.style.minHeight = `${finalHeight}px`;
+        
+        // Ensure the layout is properly centered within the scrollable area
+        levelLayout.style.margin = `${finalHeight * 0.4}px ${finalWidth * 0.4}px`;
+        
+        console.log('Enhanced scrollable area updated:', {
+            zoomFactor,
+            layoutWidth,
+            layoutHeight,
+            finalWidth,
+            finalHeight,
+            isDesktop,
+            viewportWidth: mapViewport.clientWidth,
+            viewportHeight: mapViewport.clientHeight
+        });
+    }
+
+    // Enhanced centerOnCurrentCard method
+    centerOnCurrentCard() {
+        const currentCard = document.querySelector('.card-container.current');
+        const mapViewport = document.getElementById('map-viewport');
+        
+        if (currentCard && mapViewport) {
+            // Get the card's position relative to the scrollable area
+            const cardRect = currentCard.getBoundingClientRect();
+            const viewportRect = mapViewport.getBoundingClientRect();
+            
+            // Calculate center position
+            const cardCenterX = cardRect.left + cardRect.width / 2 - viewportRect.left;
+            const cardCenterY = cardRect.top + cardRect.height / 2 - viewportRect.top;
+            
+            const viewportCenterX = mapViewport.clientWidth / 2;
+            const viewportCenterY = mapViewport.clientHeight / 2;
+            
+            // Calculate scroll positions to center the card
+            const scrollLeft = mapViewport.scrollLeft + cardCenterX - viewportCenterX;
+            const scrollTop = mapViewport.scrollTop + cardCenterY - viewportCenterY;
+            
+            mapViewport.scrollTo({
+                left: scrollLeft,
+                top: scrollTop,
+                behavior: 'smooth'
+            });
+            
+            // Visual feedback
+            currentCard.style.boxShadow = '0 0 30px rgba(52, 152, 219, 1)';
+            setTimeout(() => {
+                currentCard.style.boxShadow = '';
+            }, 1500);
+        }
+    }
+
+    centerOnHero() {
+        const currentCard = document.querySelector('.card-container.current .card-grid');
+        const heroTile = currentCard?.querySelector('.card-tile.hero');
+
+        if (heroTile) {
+            this.scrollToElement(heroTile, true);
+        } else {
+            this.centerOnCurrentCard();
+        }
+    }
+
+    scrollToElement(element, isHeroTile = false) {
+        const mapViewport = document.getElementById('map-viewport');
+        if (!mapViewport || !element) return;
+
+        const rect = element.getBoundingClientRect();
+        const viewportRect = mapViewport.getBoundingClientRect();
+
+        const elementCenterX = rect.left + rect.width / 2 - viewportRect.left;
+        const elementCenterY = rect.top + rect.height / 2 - viewportRect.top;
+
+        const viewportCenterX = mapViewport.clientWidth / 2;
+        const viewportCenterY = mapViewport.clientHeight / 2;
+
+        const scrollLeft = mapViewport.scrollLeft + elementCenterX - viewportCenterX;
+        const scrollTop = mapViewport.scrollTop + elementCenterY - viewportCenterY;
+
+        mapViewport.scrollTo({
+            left: scrollLeft,
+            top: scrollTop,
+            behavior: 'smooth'
+        });
+
+        if (isHeroTile) {
+            element.style.boxShadow = '0 0 20px rgba(52, 152, 219, 1)';
+            setTimeout(() => {
+                element.style.boxShadow = '';
+            }, 1000);
+        }
+    }
+
+    // Enhanced touch indicator visibility
+    updateTouchIndicators() {
+        const touchIndicators = document.getElementById('touch-indicators');
+        if (!touchIndicators) return;
+
+        const isDesktop = window.innerWidth >= 1024;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        // Hide on desktop unless it's specifically a touch-enabled desktop
+        if (isDesktop && !isTouchDevice) {
+            touchIndicators.style.display = 'none';
+        } else {
+            touchIndicators.style.display = 'block';
+            if (window.innerWidth < 768) {
+                touchIndicators.textContent = '📱 Pinch zoom • Drag pan';
+            } else {
+                touchIndicators.textContent = '📱 Pinch to zoom • Drag to pan';
+            }
+        }
+    }
+
+    // Add method to test scrolling functionality
+    testScrollDirection() {
+        const mapViewport = document.getElementById('map-viewport');
+        if (!mapViewport) {
+            console.log('❌ Map viewport not found');
+            return;
+        }
+        
+        const initialLeft = mapViewport.scrollLeft;
+        const initialTop = mapViewport.scrollTop;
+        
+        console.log('🧪 Testing scroll functionality...');
+        console.log('📍 Initial position:', { left: initialLeft, top: initialTop });
+        console.log('📐 Viewport dimensions:', {
+            clientWidth: mapViewport.clientWidth,
+            clientHeight: mapViewport.clientHeight,
+            scrollWidth: mapViewport.scrollWidth,
+            scrollHeight: mapViewport.scrollHeight,
+            canScrollHorizontally: mapViewport.scrollWidth > mapViewport.clientWidth,
+            canScrollVertically: mapViewport.scrollHeight > mapViewport.clientHeight
+        });
+        
+        // Test all directions
+        const tests = [
+            { name: 'Left', deltaX: -100, deltaY: 0 },
+            { name: 'Right', deltaX: 100, deltaY: 0 },
+            { name: 'Up', deltaX: 0, deltaY: -100 },
+            { name: 'Down', deltaX: 0, deltaY: 100 },
+            { name: 'Diagonal', deltaX: 100, deltaY: 100 }
+        ];
+        
+        let testIndex = 0;
+        
+        const runNextTest = () => {
+            if (testIndex >= tests.length) {
+                console.log('✅ Scroll test completed');
+                mapViewport.scrollLeft = initialLeft;
+                mapViewport.scrollTop = initialTop;
+                return;
+            }
+            
+            const test = tests[testIndex];
+            console.log(`🔄 Testing ${test.name} scroll...`);
+            
+            const newLeft = Math.max(0, initialLeft + test.deltaX);
+            const newTop = Math.max(0, initialTop + test.deltaY);
+            
+            mapViewport.scrollTo({ left: newLeft, top: newTop, behavior: 'smooth' });
+            
+            setTimeout(() => {
+                const actualLeft = mapViewport.scrollLeft;
+                const actualTop = mapViewport.scrollTop;
+                const success = Math.abs(actualLeft - newLeft) < 10 && Math.abs(actualTop - newTop) < 10;
+                
+                console.log(`${success ? '✅' : '❌'} ${test.name}:`, {
+                    expected: { left: newLeft, top: newTop },
+                    actual: { left: actualLeft, top: actualTop }
+                });
+                
+                testIndex++;
+                setTimeout(runNextTest, 500);
+            }, 500);
+        };
+        
+        runNextTest();
     }
 
     tryMoveHero(deltaX, deltaY) {
@@ -668,7 +1240,6 @@
         const { x: heroX, y: heroY } = this.hero;
         const reachableTiles = this.calculateReachableTiles(heroX, heroY, this.hero.remainingMoves, currentCard);
 
-        // Highlight reachable tiles
         reachableTiles.forEach(pos => {
             const cardContainer = document.querySelector(`.card-container.current .card-grid`);
             if (cardContainer) {
@@ -692,12 +1263,10 @@
         const ability = this.abilities[this.selectedAbility];
         let effectiveRange = ability.range;
 
-        // Apply environmental effects
         if (this.environmentEffect && this.environmentEffect.name === 'Dark Fog' && ability.range > 0) {
             effectiveRange = Math.max(1, ability.range - 1);
         }
 
-        // Skip range highlighting for self-target abilities
         if (ability.type === 'self' || ability.type === 'buff') {
             return;
         }
@@ -705,7 +1274,6 @@
         const { x: heroX, y: heroY } = this.hero;
         const inRangeTiles = this.calculateAbilityRange(heroX, heroY, effectiveRange, currentCard);
 
-        // Highlight tiles in range
         inRangeTiles.forEach(pos => {
             const cardContainer = document.querySelector(`.card-container.current .card-grid`);
             if (cardContainer) {
@@ -729,46 +1297,37 @@
 
     calculateReachableTiles(startX, startY, maxMoves, card) {
         const reachable = [];
-        const visited = new Map(); // Store position -> minimum moves needed to reach
+        const visited = new Map();
         const queue = [{ x: startX, y: startY, moves: maxMoves, path: [] }];
 
         while (queue.length > 0) {
             const { x, y, moves, path } = queue.shift();
             const key = `${x},${y}`;
 
-            // Skip if we've visited this tile with better or equal moves
             if (visited.has(key) && visited.get(key) >= moves) continue;
             if (moves < 0) continue;
 
             visited.set(key, moves);
 
-            // Don't include starting position in reachable tiles
             if (!(x === startX && y === startY)) {
                 reachable.push({ x, y, moves, path: [...path] });
             }
 
             if (moves > 0) {
                 const neighbors = [
-                    { x: x + 1, y: y },
-                    { x: x - 1, y: y },
-                    { x: x, y: y + 1 },
-                    { x: x, y: y - 1 }
+                    { x: x + 1, y: y }, { x: x - 1, y: y },
+                    { x: x, y: y + 1 }, { x: x, y: y - 1 }
                 ];
 
                 neighbors.forEach(neighbor => {
                     if (neighbor.x >= 0 && neighbor.x < this.GRID_SIZE && neighbor.y >= 0 && neighbor.y < this.GRID_SIZE) {
-                        // Check if tile is passable (not wall, not monster)
                         if (card.terrain[neighbor.y][neighbor.x] !== 'wall' &&
                             !card.monsters.some(m => m.x === neighbor.x && m.y === neighbor.y)) {
 
-                            // Calculate movement cost for this step
                             let moveCost = 1;
-
-                            // Check adjacency rules - reduced penalty
                             const currentAdjacent = this.isAdjacentToEnemy(x, y, this.hero.cardX, this.hero.cardY);
                             const targetAdjacent = this.isAdjacentToEnemy(neighbor.x, neighbor.y, this.hero.cardX, this.hero.cardY);
 
-                            // Fixed penalty instead of consuming all moves
                             if (!currentAdjacent && targetAdjacent) {
                                 moveCost = this.MOVEMENT_ADJACENCY_PENALTY;
                             }
@@ -776,7 +1335,6 @@
                             const newMoves = moves - moveCost;
                             const newPath = [...path, { x: neighbor.x, y: neighbor.y }];
 
-                            // Only add to queue if we have enough moves and haven't visited with better moves
                             if (newMoves >= 0 && (!visited.has(`${neighbor.x},${neighbor.y}`) || visited.get(`${neighbor.x},${neighbor.y}`) < newMoves)) {
                                 queue.push({
                                     x: neighbor.x,
@@ -802,7 +1360,6 @@
                 const distance = Math.abs(x - centerX) + Math.abs(y - centerY);
 
                 if (distance <= range && distance > 0) {
-                    // Check if there's a clear line (for most abilities)
                     if (this.hasLineOfSight(centerX, centerY, x, y, card)) {
                         inRange.push({ x, y, distance });
                     }
@@ -814,7 +1371,6 @@
     }
 
     hasLineOfSight(x1, y1, x2, y2, card) {
-        // Simple line of sight check - can be improved with Bresenham's line algorithm
         const dx = Math.abs(x2 - x1);
         const dy = Math.abs(y2 - y1);
         const sx = x1 < x2 ? 1 : -1;
@@ -825,10 +1381,9 @@
         let y = y1;
 
         while (true) {
-            // Don't check the starting position or target position for walls
             if (!(x === x1 && y === y1) && !(x === x2 && y === y2)) {
                 if (card.terrain[y] && card.terrain[y][x] === 'wall') {
-                    return false; // Line blocked by wall
+                    return false;
                 }
             }
 
@@ -849,7 +1404,6 @@
     }
 
     handleTileClick(x, y) {
-        // Add bounds checking
         if (x < 0 || x >= this.GRID_SIZE || y < 0 || y >= this.GRID_SIZE) {
             console.warn('handleTileClick called with invalid coordinates:', x, y);
             return;
@@ -868,7 +1422,6 @@
     }
 
     moveHero(x, y) {
-        // Check if trying to move outside current card - not allowed anymore
         if (x < 0 || x >= this.GRID_SIZE || y < 0 || y >= this.GRID_SIZE) {
             this.showMessage('Use card transitions to move between areas!');
             return;
@@ -877,14 +1430,12 @@
         const currentCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
         if (!currentCard) return;
 
-        // Check if destination is blocked
         if (currentCard.terrain[y][x] === 'wall' ||
             currentCard.monsters.some(m => m.x === x && m.y === y)) {
             this.showMessage('That tile is blocked!');
             return;
         }
 
-        // Validate movement using the same pathfinding algorithm as highlighting
         const reachableTiles = this.calculateReachableTiles(this.hero.x, this.hero.y, this.hero.remainingMoves, currentCard);
         const targetTile = reachableTiles.find(tile => tile.x === x && tile.y === y);
 
@@ -893,27 +1444,22 @@
             return;
         }
 
-        // Calculate the actual movement cost to reach this tile
         const movementCost = this.hero.remainingMoves - targetTile.moves;
 
-        // Perform the movement
         this.hero.remainingMoves -= movementCost;
         this.hero.x = x;
         this.hero.y = y;
 
-        // Clear movement highlights after moving
         this.clearAllHighlights();
 
         this.updateVisibility();
         this.updateMonsterEngagement();
 
-        // Apply environmental effects
         if (this.environmentEffect && this.environmentEffect.name === 'Bloodthorn Growth') {
             this.takeDamage(this.hero, 1);
             this.showDamageNumber(x, y, 1, false);
         }
 
-        // Check for treasure
         const treasure = currentCard.treasures.find(t => t.x === x && t.y === y && !t.collected);
         if (treasure) {
             treasure.collected = true;
@@ -938,7 +1484,6 @@
             effectiveRange = Math.max(1, ability.range - 1);
         }
 
-        // For self-target abilities, ignore position
         if (ability.type === 'self' || ability.type === 'buff') {
             this.hero.hasActed = true;
             if (ability.type === 'self') {
@@ -950,7 +1495,6 @@
             return;
         }
 
-        // Validate target is in range and has line of sight
         const currentCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
         const inRangeTiles = this.calculateAbilityRange(this.hero.x, this.hero.y, effectiveRange, currentCard);
         const targetTile = inRangeTiles.find(tile => tile.x === x && tile.y === y);
@@ -960,7 +1504,6 @@
             return;
         }
 
-        // Check if there's a valid target at the position
         const target = currentCard.monsters.find(m => m.x === x && m.y === y);
         if (!target) {
             this.showMessage('No valid target at that position!');
@@ -1009,7 +1552,6 @@
                 clearInterval(rollInterval);
                 dice.classList.remove('rolling');
 
-                // Enhanced environmental effect trigger with cooldown
                 if (value === 20 && this.environmentCooldown === 0) {
                     this.triggerEnvironmentalEffect();
                     this.environmentCooldown = this.MAX_ENVIRONMENT_COOLDOWN;
@@ -1119,7 +1661,6 @@
     }
 
     processEnvironmentPhase() {
-        // Environmental effects
         if (this.environmentEffect) {
             this.applyEnvironmentalEffects();
             this.environmentTurns--;
@@ -1130,19 +1671,16 @@
             }
         }
 
-        // Reduce cooldowns
         Object.keys(this.abilityCooldowns).forEach(ability => {
             if (this.abilityCooldowns[ability] > 0) {
                 this.abilityCooldowns[ability]--;
             }
         });
 
-        // Reduce environment cooldown
         if (this.environmentCooldown > 0) {
             this.environmentCooldown--;
         }
 
-        // Reduce buff durations
         if (this.hero.bonusArmorTurns > 0) {
             this.hero.bonusArmorTurns--;
             if (this.hero.bonusArmorTurns === 0) {
@@ -1164,7 +1702,6 @@
     updateMonsterEngagement() {
         this.activeCards.forEach(card => {
             card.monsters.forEach(monster => {
-                // Engage monsters within range of hero regardless of card
                 const heroCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
                 if (heroCard && monster.cardX === this.hero.cardX && monster.cardY === this.hero.cardY) {
                     const distance = Math.abs(monster.x - this.hero.x) + Math.abs(monster.y - this.hero.y);
@@ -1176,271 +1713,17 @@
         });
     }
 
-    // Zoom control methods
-    zoomIn() {
-        if (this.currentZoom < this.zoomLevels.length - 1) {
-            this.currentZoom++;
-            this.updateZoom();
-        }
-    }
-
-    zoomOut() {
-        if (this.currentZoom > 0) {
-            this.currentZoom--;
-            this.updateZoom();
-        }
-    }
-
-    resetZoom() {
-        this.currentZoom = 2; // Reset to normal (100%)
-        this.updateZoom();
-    }
-
-    updateZoom() {
-        const levelLayout = document.getElementById('level-layout');
-        const zoomLabel = document.getElementById('zoom-level');
-        const zoomInBtn = document.getElementById('zoom-in');
-        const zoomOutBtn = document.getElementById('zoom-out');
-
-        if (levelLayout) {
-            // Remove all zoom classes
-            this.zoomLevels.forEach(zoom => levelLayout.classList.remove(zoom));
-            // Add current zoom class
-            levelLayout.classList.add(this.zoomLevels[this.currentZoom]);
-        }
-
-        if (zoomLabel) {
-            zoomLabel.textContent = this.zoomLabels[this.currentZoom];
-        }
-
-        // Update button states
-        if (zoomInBtn) {
-            zoomInBtn.disabled = this.currentZoom >= this.zoomLevels.length - 1;
-        }
-        if (zoomOutBtn) {
-            zoomOutBtn.disabled = this.currentZoom <= 0;
-        }
-    }
-
-    // Map navigation methods
-    setupMapNavigation() {
-        const mapViewport = document.getElementById('map-viewport');
-        const mapContainer = document.querySelector('.map-container');
-
-        if (!mapViewport || !mapContainer) return;
-
-        // Mouse drag controls
-        mapContainer.addEventListener('mousedown', (e) => this.startDrag(e));
-        document.addEventListener('mousemove', (e) => this.handleDrag(e));
-        document.addEventListener('mouseup', () => this.endDrag());
-
-        // Touch controls
-        mapContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        mapContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        mapContainer.addEventListener('touchend', () => this.handleTouchEnd());
-
-        // Mouse wheel zoom
-        mapContainer.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
-
-        // Prevent context menu on right click during drag
-        mapContainer.addEventListener('contextmenu', (e) => {
-            if (this.isDragging) {
-                e.preventDefault();
-            }
-        });
-    }
-
-    startDrag(e) {
-        if (e.button !== 0) return; // Only left mouse button
-
-        this.isDragging = true;
-        this.dragStart.x = e.clientX;
-        this.dragStart.y = e.clientY;
-
-        const mapContainer = document.querySelector('.map-container');
-        if (mapContainer) {
-            mapContainer.style.cursor = 'grabbing';
-        }
-
-        e.preventDefault();
-    }
-
-    handleDrag(e) {
-        if (!this.isDragging) return;
-
-        const deltaX = e.clientX - this.dragStart.x;
-        const deltaY = e.clientY - this.dragStart.y;
-
-        this.scrollMap(deltaX, deltaY);
-
-        this.dragStart.x = e.clientX;
-        this.dragStart.y = e.clientY;
-    }
-
-    endDrag() {
-        this.isDragging = false;
-
-        const mapContainer = document.querySelector('.map-container');
-        if (mapContainer) {
-            mapContainer.style.cursor = 'grab';
-        }
-    }
-
-    handleTouchStart(e) {
-        if (e.touches.length === 1) {
-            // Single touch - start drag
-            const touch = e.touches[0];
-            this.isDragging = true;
-            this.dragStart.x = touch.clientX;
-            this.dragStart.y = touch.clientY;
-        } else if (e.touches.length === 2) {
-            // Two finger pinch - start zoom
-            this.isDragging = false;
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            this.touchStartDistance = Math.hypot(
-                touch2.clientX - touch1.clientX,
-                touch2.clientY - touch1.clientY
-            );
-            this.initialZoom = this.currentZoom;
-        }
-
-        e.preventDefault();
-    }
-
-    handleTouchMove(e) {
-        if (e.touches.length === 1 && this.isDragging) {
-            // Single touch drag
-            const touch = e.touches[0];
-            const deltaX = touch.clientX - this.dragStart.x;
-            const deltaY = touch.clientY - this.dragStart.y;
-
-            this.scrollMap(deltaX, deltaY);
-
-            this.dragStart.x = touch.clientX;
-            this.dragStart.y = touch.clientY;
-        } else if (e.touches.length === 2) {
-            // Pinch to zoom
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const currentDistance = Math.hypot(
-                touch2.clientX - touch1.clientX,
-                touch2.clientY - touch1.clientY
-            );
-
-            const zoomFactor = currentDistance / this.touchStartDistance;
-            const newZoom = Math.round(this.initialZoom + (zoomFactor - 1) * 3);
-
-            const clampedZoom = Math.max(0, Math.min(this.zoomLevels.length - 1, newZoom));
-
-            if (clampedZoom !== this.currentZoom) {
-                this.currentZoom = clampedZoom;
-                this.updateZoom();
-            }
-        }
-
-        e.preventDefault();
-    }
-
-    handleTouchEnd() {
-        this.isDragging = false;
-        this.touchStartDistance = 0;
-    }
-
-    handleWheel(e) {
-        e.preventDefault();
-
-        // Zoom with mouse wheel
-        if (e.deltaY < 0) {
-            this.zoomIn();
-        } else {
-            this.zoomOut();
-        }
-    }
-
-    scrollMap(deltaX, deltaY) {
-        const mapViewport = document.getElementById('map-viewport');
-        if (!mapViewport) return;
-
-        mapViewport.scrollLeft -= deltaX;
-        mapViewport.scrollTop -= deltaY;
-    }
-
-    centerOnCurrentCard() {
-        const currentCard = document.querySelector('.card-container.current');
-        if (currentCard) {
-            this.scrollToElement(currentCard);
-        }
-    }
-
-    centerOnHero() {
-        // Find hero tile in current card
-        const currentCard = document.querySelector('.card-container.current .card-grid');
-        const heroTile = currentCard?.querySelector('.card-tile.hero');
-
-        if (heroTile) {
-            this.scrollToElement(heroTile, true);
-        } else {
-            // Fallback to current card
-            this.centerOnCurrentCard();
-        }
-    }
-
-    scrollToElement(element, isHeroTile = false) {
-        const mapViewport = document.getElementById('map-viewport');
-        if (!mapViewport || !element) return;
-
-        const rect = element.getBoundingClientRect();
-        const viewportRect = mapViewport.getBoundingClientRect();
-
-        // Calculate the position to center the element
-        const elementCenterX = rect.left + rect.width / 2 - viewportRect.left;
-        const elementCenterY = rect.top + rect.height / 2 - viewportRect.top;
-
-        const viewportCenterX = mapViewport.clientWidth / 2;
-        const viewportCenterY = mapViewport.clientHeight / 2;
-
-        const scrollLeft = mapViewport.scrollLeft + elementCenterX - viewportCenterX;
-        const scrollTop = mapViewport.scrollTop + elementCenterY - viewportCenterY;
-
-        mapViewport.scrollTo({
-            left: scrollLeft,
-            top: scrollTop,
-            behavior: 'smooth'
-        });
-
-        // Show a brief highlight on the target
-        if (isHeroTile) {
-            element.style.boxShadow = '0 0 20px rgba(52, 152, 219, 1)';
-            setTimeout(() => {
-                element.style.boxShadow = '';
-            }, 1000);
-        }
-    }
-
-    updateTouchIndicators() {
-        const touchIndicators = document.getElementById('touch-indicators');
-        if (!touchIndicators) return;
-
-        // Show touch indicators only on touch devices
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        touchIndicators.style.display = isTouchDevice ? 'block' : 'none';
-    }
-
     monsterAction(monster) {
         if (!monster.engaged) return;
 
         const heroDistance = this.getDistanceToHero(monster);
 
-        // If hero is in different card and monster is close to edge, try to follow
         if (monster.cardX !== this.hero.cardX || monster.cardY !== this.hero.cardY) {
             this.tryMonsterCardTransition(monster);
             return;
         }
 
-        // If in same card, normal behavior
         if (heroDistance <= monster.attackRange) {
-            // Attack hero
             const attackRoll = Math.floor(Math.random() * 20) + 1 + 2;
             let damage = monster.damage;
 
@@ -1456,73 +1739,64 @@
                 this.showMessage(`${monster.type} attacks but misses!`);
             }
         } else {
-            // Move towards hero
             this.moveMonsterTowardsHero(monster);
         }
     }
 
     getDistanceToHero(monster) {
         if (monster.cardX !== this.hero.cardX || monster.cardY !== this.hero.cardY) {
-            return Infinity; // Different cards
+            return Infinity;
         }
         return Math.abs(monster.x - this.hero.x) + Math.abs(monster.y - this.hero.y);
     }
 
     tryMonsterCardTransition(monster) {
-        // Check if monster is on edge of its current card
         const isOnEdge = monster.x === 0 || monster.x === this.GRID_SIZE - 1 ||
             monster.y === 0 || monster.y === this.GRID_SIZE - 1;
         if (!isOnEdge) {
-            // Move towards closest edge that leads to hero
             this.moveMonsterTowardsCardEdge(monster);
             return;
         }
 
-        // Determine which adjacent card the hero is in
         const deltaCardX = this.hero.cardX - monster.cardX;
         const deltaCardY = this.hero.cardY - monster.cardY;
 
-        // Only allow movement to adjacent cards
         if (Math.abs(deltaCardX) + Math.abs(deltaCardY) === 1) {
             let newCardX = monster.cardX;
             let newCardY = monster.cardY;
             let newX = monster.x;
             let newY = monster.y;
 
-            if (deltaCardX > 0 && monster.x === this.GRID_SIZE - 1) { // Move east
+            if (deltaCardX > 0 && monster.x === this.GRID_SIZE - 1) {
                 newCardX++;
                 newX = 0;
-            } else if (deltaCardX < 0 && monster.x === 0) { // Move west
+            } else if (deltaCardX < 0 && monster.x === 0) {
                 newCardX--;
                 newX = this.GRID_SIZE - 1;
-            } else if (deltaCardY > 0 && monster.y === this.GRID_SIZE - 1) { // Move south
+            } else if (deltaCardY > 0 && monster.y === this.GRID_SIZE - 1) {
                 newCardY++;
                 newY = 0;
-            } else if (deltaCardY < 0 && monster.y === 0) { // Move north
+            } else if (deltaCardY < 0 && monster.y === 0) {
                 newCardY--;
                 newY = this.GRID_SIZE - 1;
             }
 
-            // Validate target card exists in level layout
             const levelLayout = this.levelLayouts[this.currentLevel];
             const cardExists = levelLayout.some(pos => pos.x === newCardX && pos.y === newCardY);
 
             if (!cardExists) {
-                return; // Card doesn't exist in level
+                return;
             }
 
-            // Check if target card exists and position is valid
             const targetCard = this.getCardAtPosition(newCardX, newCardY);
             if (targetCard && targetCard.terrain[newY][newX] !== 'wall' &&
                 !targetCard.monsters.some(m => m.x === newX && m.y === newY)) {
 
-                // Remove monster from old card
                 const oldCard = this.getCardAtPosition(monster.cardX, monster.cardY);
                 if (oldCard) {
                     oldCard.monsters = oldCard.monsters.filter(m => m !== monster);
                 }
 
-                // Add monster to new card
                 monster.cardX = newCardX;
                 monster.cardY = newCardY;
                 monster.x = newX;
@@ -1541,7 +1815,6 @@
         let targetX = monster.x;
         let targetY = monster.y;
 
-        // Move towards the edge that leads to hero's card
         if (deltaCardX > 0) targetX = Math.min(this.GRID_SIZE - 1, monster.x + 1);
         else if (deltaCardX < 0) targetX = Math.max(0, monster.x - 1);
 
@@ -1650,7 +1923,6 @@
     }
 
     showDamageNumber(x, y, amount, isHeal = false) {
-        // Find the tile in the current card
         const currentCardContainer = document.querySelector(`.card-container.current .card-grid`);
         if (!currentCardContainer) return;
 
@@ -1670,21 +1942,17 @@
     }
 
     showCharacterSheet(unit = null) {
-        // Use hero as default if no unit provided
         const character = unit || this.hero;
 
-        // Remove any existing character sheet
         const existingSheet = document.querySelector('.character-sheet');
         if (existingSheet) existingSheet.remove();
 
-        // Create character sheet modal
         const characterSheet = document.createElement('div');
         characterSheet.className = `character-sheet ${character.unitType || 'hero'}`;
 
         const content = document.createElement('div');
         content.className = 'character-sheet-content';
 
-        // Calculate derived stats based on unit type
         let totalArmor, hpPercent, xpPercent = 0;
 
         if (character === this.hero) {
@@ -1697,7 +1965,6 @@
             hpPercent = (character.hp / character.maxHp) * 100;
         }
 
-        // Get appropriate icon based on unit type
         const getUnitIcon = (unitType) => {
             switch (unitType) {
                 case 'enemy': return '👹';
@@ -1706,7 +1973,6 @@
             }
         };
 
-        // Get appropriate title based on unit type
         const getUnitTitle = (unitType) => {
             switch (unitType) {
                 case 'enemy': return '⚔️ Enemy Information';
@@ -1874,7 +2140,6 @@
                 <h3>${getUnitTitle(character.unitType)}</h3>
                 <div class="abilities-grid">
                     ${character === this.hero ?
-                // Hero abilities
                 Object.entries(this.abilities).map(([key, ability]) => {
                     const cooldown = this.abilityCooldowns[key] || 0;
                     const isOnCooldown = cooldown > 0;
@@ -1908,7 +2173,6 @@
                             `;
                 }).join('')
                 :
-                // Enemy/other unit abilities
                 `<div class="ability-card">
                             <div class="ability-header">
                                 <div class="ability-title">Basic Combat</div>
@@ -1935,7 +2199,6 @@
         characterSheet.appendChild(content);
         document.body.appendChild(characterSheet);
 
-        // Add proper event listeners instead of inline onclick
         const closeBtn = content.querySelector('.close-btn');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
@@ -1943,7 +2206,6 @@
             });
         }
 
-        // Add click-to-close functionality
         characterSheet.addEventListener('click', (e) => {
             if (e.target === characterSheet) {
                 characterSheet.remove();
@@ -1994,7 +2256,6 @@
         const xpProgressEl = document.getElementById('xp-progress');
         if (xpProgressEl) xpProgressEl.style.width = xpProgress + '%';
 
-        // Update ability cooldowns and action status
         Object.keys(this.abilities).forEach(abilityName => {
             const abilityEl = document.querySelector(`[data-ability="${abilityName}"]`);
             if (!abilityEl) return;
@@ -2080,7 +2341,6 @@
     calculateLevelGridLayout() {
         const layout = this.levelLayouts[this.currentLevel];
 
-        // Find bounds of the level
         const minX = Math.min(...layout.map(pos => pos.x));
         const maxX = Math.max(...layout.map(pos => pos.x));
         const minY = Math.min(...layout.map(pos => pos.y));
@@ -2097,6 +2357,7 @@
         };
     }
 
+    // Enhanced renderMap with better initial positioning
     renderMap() {
         const levelLayout = document.getElementById('level-layout');
         if (!levelLayout) return;
@@ -2138,8 +2399,17 @@
             }
         }
 
-        // Maintain zoom level after re-render
+        // Update zoom and scrollable area after rendering
         this.updateZoom();
+        
+        // Ensure scrollable area is properly set up with a delay for layout calculation
+        setTimeout(() => {
+            this.updateScrollableArea();
+            // Auto-center on current card after initial render
+            if (this.turn === 1) {
+                setTimeout(() => this.centerOnCurrentCard(), 500);
+            }
+        }, 100);
     }
 
     createCardContainer(cardX, cardY) {
@@ -2148,7 +2418,6 @@
         container.dataset.cardX = cardX;
         container.dataset.cardY = cardY;
 
-        // Add coordinates label
         const coordLabel = document.createElement('div');
         coordLabel.className = 'card-coordinates';
         coordLabel.textContent = `(${cardX},${cardY})`;
@@ -2157,26 +2426,22 @@
         const card = this.getCardAtPosition(cardX, cardY);
 
         if (!card) {
-            // Unrevealed card
             container.classList.add('unrevealed');
             container.textContent = '❓';
             container.title = `Unexplored area (${cardX},${cardY})`;
 
-            // Add click handler for unrevealed cards - only if hero is on edge and adjacent
             container.addEventListener('click', () => {
                 if (this.turnPhase === 'hero') {
                     this.moveToCard(cardX, cardY);
                 }
             });
         } else {
-            // Revealed card
             container.classList.add('revealed');
 
             if (cardX === this.hero.cardX && cardY === this.hero.cardY) {
                 container.classList.add('current');
             }
 
-            // Create the card grid
             const cardGrid = document.createElement('div');
             cardGrid.className = 'card-grid';
 
@@ -2189,11 +2454,9 @@
                     tile.dataset.cardX = cardX;
                     tile.dataset.cardY = cardY;
 
-                    // Only show details for current card
                     if (cardX === this.hero.cardX && cardY === this.hero.cardY) {
                         this.renderTile(tile, card, x, y, cardX, cardY);
 
-                        // Add click handler for current card tiles (but not for hero/monster tiles - they have their own handlers)
                         const hasCharacter = (x === this.hero.x && y === this.hero.y) ||
                             card.monsters.some(m => m.x === x && m.y === y);
                         if (!hasCharacter) {
@@ -2204,10 +2467,8 @@
                             });
                         }
                     } else {
-                        // Other revealed cards show basic layout but respect fog
                         this.renderTileBasic(tile, card, x, y, cardX, cardY);
 
-                        // Add click handler to move to other cards
                         tile.addEventListener('click', () => {
                             if (this.turnPhase === 'hero') {
                                 this.moveToCard(cardX, cardY);
@@ -2226,7 +2487,6 @@
     }
 
     renderTile(tile, card, x, y, cardX, cardY) {
-        // Check fog of war
         const cardKey = `${cardX},${cardY}`;
         const fogSet = this.fogOfWar.get(cardKey);
         const posKey = `${x},${y}`;
@@ -2241,16 +2501,14 @@
             tile.textContent = '🧱';
         }
 
-        // Add entities
         if (x === this.hero.x && y === this.hero.y) {
             tile.classList.add('hero');
             tile.textContent = '🦸';
             tile.title = `${this.hero.name} - Click to view character sheet`;
             tile.style.cursor = 'pointer';
 
-            // Add special click handler for hero
             tile.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent the normal tile click
+                e.stopPropagation();
                 this.showCharacterSheet();
             });
         } else {
@@ -2270,16 +2528,12 @@
                 tile.title = `${monster.type} (HP: ${monster.hp}/${monster.maxHp}) ${monster.engaged ? 'ENGAGED' : 'sleeping'} - Click to view details`;
                 tile.style.cursor = 'pointer';
 
-                // Add special click handler for monsters
                 tile.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent the normal tile click
+                    e.stopPropagation();
 
-                    // Check if we're in combat mode first
                     if ((this.mode === 'attack' || this.mode === 'ability') && this.selectedAbility && this.turnPhase === 'hero' && !this.hero.hasActed) {
-                        // Combat takes priority - perform attack
                         this.handleTileClick(x, y);
                     } else {
-                        // Show character sheet when not in combat
                         this.showCharacterSheet(monster);
                     }
                 });
@@ -2292,7 +2546,6 @@
             }
         }
 
-        // Highlight threat zones
         if (this.isAdjacentToEnemy(x, y, cardX, cardY) &&
             !(x === this.hero.x && y === this.hero.y) &&
             card.terrain[y][x] !== 'wall') {
@@ -2301,7 +2554,6 @@
     }
 
     renderTileBasic(tile, card, x, y, cardX, cardY) {
-        // Check fog of war for this card
         const cardKey = `${cardX},${cardY}`;
         const fogSet = this.fogOfWar.get(cardKey);
         const posKey = `${x},${y}`;
@@ -2311,7 +2563,6 @@
             return;
         }
 
-        // Show basic layout for revealed tiles only
         if (card.terrain[y][x] === 'wall') {
             tile.classList.add('wall');
             tile.textContent = '🧱';
@@ -2323,9 +2574,8 @@
                 tile.title = `${monster.type} (HP: ${monster.hp}/${monster.maxHp}) - Click to view details`;
                 tile.style.cursor = 'pointer';
 
-                // Add click handler for monsters in other cards
                 tile.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent the normal tile click
+                    e.stopPropagation();
                     this.showCharacterSheet(monster);
                 });
             } else if (card.treasures.some(t => t.x === x && t.y === y && !t.collected)) {
@@ -2336,7 +2586,6 @@
     }
 
     moveToCard(targetCardX, targetCardY) {
-        // Check if card is adjacent to current card
         const deltaX = Math.abs(targetCardX - this.hero.cardX);
         const deltaY = Math.abs(targetCardY - this.hero.cardY);
 
@@ -2350,55 +2599,48 @@
             return;
         }
 
-        // Check if hero is on edge tile that allows transition
         if (!this.isHeroOnEdge()) {
             this.showMessage('You must be on the edge of the current area to move to adjacent areas!');
             return;
         }
 
-        // Check if hero is on the correct edge for the transition
         const { x: heroX, y: heroY } = this.hero;
         let canTransition = false;
 
-        if (targetCardX > this.hero.cardX && heroX === this.GRID_SIZE - 1) canTransition = true; // Moving east from east edge
-        if (targetCardX < this.hero.cardX && heroX === 0) canTransition = true; // Moving west from west edge
-        if (targetCardY > this.hero.cardY && heroY === this.GRID_SIZE - 1) canTransition = true; // Moving south from south edge
-        if (targetCardY < this.hero.cardY && heroY === 0) canTransition = true; // Moving north from north edge
+        if (targetCardX > this.hero.cardX && heroX === this.GRID_SIZE - 1) canTransition = true;
+        if (targetCardX < this.hero.cardX && heroX === 0) canTransition = true;
+        if (targetCardY > this.hero.cardY && heroY === this.GRID_SIZE - 1) canTransition = true;
+        if (targetCardY < this.hero.cardY && heroY === 0) canTransition = true;
 
         if (!canTransition) {
             this.showMessage('You must be on the correct edge to move in that direction!');
             return;
         }
 
-        // Place card if not already placed
         this.placeCard(targetCardX, targetCardY);
 
-        // Find entry point for new card (opposite edge)
         let entryX = heroX, entryY = heroY;
 
-        if (targetCardX > this.hero.cardX) entryX = 0; // Entering from west
-        if (targetCardX < this.hero.cardX) entryX = this.GRID_SIZE - 1; // Entering from east
-        if (targetCardY > this.hero.cardY) entryY = 0; // Entering from north
-        if (targetCardY < this.hero.cardY) entryY = this.GRID_SIZE - 1; // Entering from south
+        if (targetCardX > this.hero.cardX) entryX = 0;
+        if (targetCardX < this.hero.cardX) entryX = this.GRID_SIZE - 1;
+        if (targetCardY > this.hero.cardY) entryY = 0;
+        if (targetCardY < this.hero.cardY) entryY = this.GRID_SIZE - 1;
 
         const newCard = this.getCardAtPosition(targetCardX, targetCardY);
         if (!newCard) return;
 
-        // Check if entry point is valid
         if (newCard.terrain[entryY][entryX] === 'wall' ||
             newCard.monsters.some(m => m.x === entryX && m.y === entryY)) {
             this.showMessage('Cannot enter that area - path blocked!');
             return;
         }
 
-        // Move hero
         this.hero.cardX = targetCardX;
         this.hero.cardY = targetCardY;
         this.hero.x = entryX;
         this.hero.y = entryY;
         this.hero.remainingMoves = Math.max(0, this.hero.remainingMoves - 1);
 
-        // Clear highlights when moving to new card
         this.clearAllHighlights();
 
         this.updateVisibility();

@@ -2,13 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Dark Tomb: Bloodthorn Island - A strategic turn-based dungeon crawler with responsive design and touch controls">
+    <meta name="theme-color" content="#2d1b5b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dark Tomb">
+
     <title>Dark Tomb: Bloodthorn Island</title>
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="css/styles.css" as="style">
+    <link rel="preload" href="js/game.js" as="script">
+    <link rel="preload" href="js/main.js" as="script">
+
     <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Prevent FOUC (Flash of Unstyled Content) -->
+    <style>
+        .game-container {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+            .game-container.loaded {
+                opacity: 1;
+            }
+    </style>
 </head>
 <body>
     <!-- Game Start Modal -->
-    <div class="game-start-modal" id="game-start-modal">
+    <div class="game-start-modal" id="game-start-modal" style="display: none;">
         <div class="modal-background"></div>
         <div class="modal-content">
             <div class="modal-header">
@@ -54,7 +78,7 @@
             </div>
 
             <div class="modal-actions">
-                <button class="start-game-btn" id="start-game-btn">
+                <button class="start-game-btn" id="start-game-btn" type="button" aria-label="Start Game">
                     <span class="btn-text">BEGIN YOUR QUEST</span>
                     <span class="btn-subtitle">Enter Bloodthorn Island</span>
                 </button>
@@ -66,118 +90,159 @@
         </div>
     </div>
 
-    <div class="game-container">
-        <div class="header">
-            <div class="hero-stats">
-                <div class="stat">
-                    <div class="stat-icon hp-icon">♥</div>
+    <!-- Main Game Container -->
+    <div class="game-container" id="game-container" tabindex="0" role="application" aria-label="Dark Tomb Game">
+        <!-- Header with Hero Stats -->
+        <header class="header" role="banner">
+            <div class="hero-stats" role="group" aria-label="Hero Statistics">
+                <div class="stat" role="status" aria-label="Hero Health">
+                    <div class="stat-icon hp-icon" aria-hidden="true">♥</div>
                     <span id="hero-hp">100/100</span>
                 </div>
-                <div class="stat">
-                    <div class="stat-icon armor-icon">🛡️</div>
+                <div class="stat" role="status" aria-label="Hero Armor">
+                    <div class="stat-icon armor-icon" aria-hidden="true">🛡️</div>
                     <span id="hero-armor">5</span>
                 </div>
-                <div class="stat">
-                    <div class="stat-icon move-icon">👟</div>
-                    <span id="hero-move">3</span>
+                <div class="stat" role="status" aria-label="Hero Movement">
+                    <div class="stat-icon move-icon" aria-hidden="true">👟</div>
+                    <span id="hero-move">3/3</span>
                 </div>
-                <div class="stat">
-                    <div class="stat-icon xp-icon">⭐</div>
+                <div class="stat" role="status" aria-label="Hero Experience">
+                    <div class="stat-icon xp-icon" aria-hidden="true">⭐</div>
                     <span id="hero-xp">0</span>
                 </div>
             </div>
 
-            <div class="turn-info">
+            <div class="turn-info" role="status" aria-label="Turn Information">
                 <div>Turn <span id="turn-number">1</span></div>
                 <div class="turn-phase hero" id="turn-phase">Hero Phase</div>
             </div>
 
-            <div class="level-info">
+            <div class="level-info" role="status" aria-label="Level Information">
                 <div>Level <span id="hero-level">1</span></div>
                 <div>Card <span id="current-card">(0,0)</span></div>
-                <div class="progress-bar">
+                <div class="progress-bar" role="progressbar" aria-label="Experience Progress">
                     <div class="progress-fill" id="xp-progress" style="width: 0%"></div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="game-area">
-            <div class="map-container">
-                <div class="map-controls">
-                    <button class="controls-menu-btn" id="controls-menu-btn">
+        <!-- Main Game Area -->
+        <main class="game-area" role="main">
+            <!-- Map Container with Touch Controls -->
+            <div class="map-container" role="region" aria-label="Game Map">
+                <!-- Map Controls -->
+                <div class="map-controls" role="toolbar" aria-label="Map Navigation Controls">
+                    <button class="controls-menu-btn" id="controls-menu-btn" type="button" aria-expanded="false" aria-controls="controls-menu">
                         <span>Map Controls</span>
-                        <span class="menu-icon">▼</span>
+                        <span class="menu-icon" aria-hidden="true">▼</span>
                     </button>
-                    <div class="controls-menu" id="controls-menu">
-                        <div class="control-group">
+                    <div class="controls-menu" id="controls-menu" role="menu" aria-hidden="true">
+                        <div class="control-group" role="group" aria-label="Zoom Controls">
                             <div class="control-label">Zoom</div>
                             <div class="zoom-controls">
-                                <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
-                                <span class="zoom-level" id="zoom-level">100%</span>
-                                <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
-                                <button class="zoom-btn" id="zoom-reset" title="Reset Zoom" style="margin-left: 4px;">⌂</button>
+                                <button class="zoom-btn" id="zoom-out" type="button" title="Zoom Out" aria-label="Zoom Out">−</button>
+                                <span class="zoom-level" id="zoom-level" role="status" aria-label="Current Zoom Level">100%</span>
+                                <button class="zoom-btn" id="zoom-in" type="button" title="Zoom In" aria-label="Zoom In">+</button>
+                                <button class="zoom-btn" id="zoom-reset" type="button" title="Reset Zoom" aria-label="Reset Zoom to 100%">⌂</button>
                             </div>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group" role="group" aria-label="Navigation Controls">
                             <div class="control-label">Navigate</div>
                             <div class="navigation-controls">
-                                <button class="nav-btn" id="center-current" title="Center on Current Card">🎯 Current</button>
-                                <button class="nav-btn" id="center-hero" title="Center on Hero">🦸 Hero</button>
+                                <button class="nav-btn" id="center-current" type="button" title="Center on Current Card" aria-label="Center Map on Current Card">🎯 Current</button>
+                                <button class="nav-btn" id="center-hero" type="button" title="Center on Hero" aria-label="Center Map on Hero">🦸 Hero</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="touch-indicators" id="touch-indicators">
+                <!-- Touch Indicators for Mobile -->
+                <div class="touch-indicators" id="touch-indicators" role="status" aria-label="Touch Control Instructions">
                     📱 Pinch to zoom • Drag to pan
                 </div>
 
-                <div class="map-viewport" id="map-viewport">
-                    <div class="level-layout zoom-normal" id="level-layout"></div>
+                <!-- Map Viewport -->
+                <div class="map-viewport" id="map-viewport" role="region" aria-label="Dungeon Map Viewport">
+                    <div class="level-layout" id="level-layout" role="grid" aria-label="Dungeon Level Layout"></div>
                 </div>
 
-                <div id="environment-effect" class="environment-effect" style="display: none;"></div>
+                <!-- Environment Effect Display -->
+                <div id="environment-effect" class="environment-effect" style="display: none;" role="alert" aria-live="assertive"></div>
             </div>
 
-            <div class="abilities-panel">
-                <div class="ability" data-ability="strike">
+            <!-- Abilities Panel -->
+            <div class="abilities-panel" role="toolbar" aria-label="Hero Abilities">
+                <button class="ability" data-ability="strike" type="button" role="button" aria-describedby="strike-desc">
                     <div class="ability-name">Strike</div>
-                    <div class="ability-details">+2 dmg, Range 1</div>
-                </div>
-                <div class="ability" data-ability="fireball">
+                    <div class="ability-details" id="strike-desc">+2 dmg, Range 1</div>
+                </button>
+                <button class="ability" data-ability="fireball" type="button" role="button" aria-describedby="fireball-desc">
                     <div class="ability-name">Fireball</div>
-                    <div class="ability-details">+4 dmg, Range 3</div>
-                </div>
-                <div class="ability" data-ability="heal">
+                    <div class="ability-details" id="fireball-desc">+4 dmg, Range 3</div>
+                </button>
+                <button class="ability" data-ability="heal" type="button" role="button" aria-describedby="heal-desc">
                     <div class="ability-name">Heal</div>
-                    <div class="ability-details">+15 HP</div>
-                </div>
-                <div class="ability" data-ability="charge">
+                    <div class="ability-details" id="heal-desc">+15 HP</div>
+                </button>
+                <button class="ability" data-ability="charge" type="button" role="button" aria-describedby="charge-desc">
                     <div class="ability-name">Charge</div>
-                    <div class="ability-details">+3 dmg, Move+Attack</div>
-                </div>
-                <div class="ability" data-ability="shield">
+                    <div class="ability-details" id="charge-desc">+3 dmg, Move+Attack</div>
+                </button>
+                <button class="ability" data-ability="shield" type="button" role="button" aria-describedby="shield-desc">
                     <div class="ability-name">Shield</div>
-                    <div class="ability-details">+2 Armor, 3 turns</div>
-                </div>
+                    <div class="ability-details" id="shield-desc">+2 Armor, 3 turns</div>
+                </button>
             </div>
 
-            <div class="bottom-panel">
-                <div class="dice-container">
-                    <div class="dice" id="dice">20</div>
-                    <span id="dice-result">Ready to roll!</span>
+            <!-- Bottom Action Panel -->
+            <div class="bottom-panel" role="complementary" aria-label="Game Actions">
+                <div class="dice-container" role="group" aria-label="Dice and Status">
+                    <button class="dice" id="dice" type="button" aria-label="Roll Dice" title="Click to roll dice">20</button>
+                    <span id="dice-result" role="status" aria-live="polite">Ready to roll!</span>
                 </div>
-                <div class="action-buttons">
-                    <button class="action-btn" id="move-btn">Move</button>
-                    <button class="action-btn" id="attack-btn" disabled>Attack</button>
-                    <button class="action-btn" id="end-turn-btn">End Turn</button>
+                <div class="action-buttons" role="group" aria-label="Action Buttons">
+                    <button class="action-btn" id="move-btn" type="button" aria-label="Enter Move Mode">Move</button>
+                    <button class="action-btn" id="attack-btn" type="button" aria-label="Enter Attack Mode" disabled>Attack</button>
+                    <button class="action-btn" id="end-turn-btn" type="button" aria-label="End Current Turn">End Turn</button>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Only load necessary scripts -->
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+    <!-- Loading Scripts -->
+    <script>
+        // Prevent FOUC by showing container only after styles are loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.classList.add('loaded');
+            }
+        });
+
+        // Simple performance monitoring
+        if ('performance' in window) {
+            window.addEventListener('load', function () {
+                const perfData = performance.getEntriesByType('navigation')[0];
+                if (perfData) {
+                    console.log('Page load time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
+                }
+            });
+        }
+    </script>
+
+    <!-- Game Scripts - Load in order -->
+    <script src="js/game.js" defer></script>
+    <script src="js/main.js" defer></script>
+
+    <!-- Service Worker Registration for PWA capabilities (optional) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                // Uncomment when you add a service worker
+                // navigator.serviceWorker.register('/sw.js').catch(console.error);
+            });
+        }
+    </script>
 </body>
 </html>
