@@ -673,10 +673,10 @@ body {
     gap: var(--card-gap);
     justify-content: center;
     align-content: center;
-    min-height: 100%;
     padding: var(--card-gap);
-    max-width: 100%;
     overflow: auto;
+    height: fit-content;
+    width: fit-content;
 }
 
 /* Card Container Styles - Responsive Sizing */
@@ -693,70 +693,70 @@ body {
 
 /* CSS Custom Properties for Single-Card Focused Sizing */
 :root {
-    --card-size: 320px; /* Large single card focus */
-    --card-gap: 25px; /* Generous spacing */
+    --card-size: 380px; /* Larger default for better desktop experience */
+    --card-gap: 20px; /* Reduced gap for better space utilization */
     --tile-font-size: 16px; /* Clear, readable tiles */
-    --map-padding: 50px; /* Space around map edges */
+    --map-padding: 40px; /* Reduced padding for more card space */
 }
 
-/* Responsive breakpoints - focus on single card visibility */
+/* Responsive breakpoints - optimized for better card visibility */
 /* Extra Large Desktop (1920px+) */
 @media (min-width: 1920px) {
     :root {
-        --card-size: 400px;
-        --card-gap: 30px;
-        --tile-font-size: 18px;
-        --map-padding: 80px;
+        --card-size: 450px; /* Much larger for big screens */
+        --card-gap: 25px;
+        --tile-font-size: 20px;
+        --map-padding: 60px;
     }
 }
 
 /* Large Desktop (1440px - 1919px) */
 @media (min-width: 1440px) and (max-width: 1919px) {
     :root {
-        --card-size: 350px;
-        --card-gap: 25px;
-        --tile-font-size: 16px;
-        --map-padding: 60px;
+        --card-size: 420px; /* Larger for better space utilization */
+        --card-gap: 22px;
+        --tile-font-size: 18px;
+        --map-padding: 50px;
     }
 }
 
 /* Standard Desktop (1024px - 1439px) */
 @media (min-width: 1024px) and (max-width: 1439px) {
     :root {
-        --card-size: 300px;
-        --card-gap: 20px;
-        --tile-font-size: 14px;
-        --map-padding: 40px;
+        --card-size: 360px; /* Increased from 300px */
+        --card-gap: 18px;
+        --tile-font-size: 15px;
+        --map-padding: 35px;
     }
 }
 
 /* Tablet Portrait (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
     :root {
-        --card-size: 280px;
-        --card-gap: 18px;
-        --tile-font-size: 13px;
-        --map-padding: 30px;
+        --card-size: 320px; /* Increased from 280px */
+        --card-gap: 16px;
+        --tile-font-size: 14px;
+        --map-padding: 25px;
     }
 }
 
 /* Mobile Landscape (568px - 767px) */
 @media (min-width: 568px) and (max-width: 767px) {
     :root {
-        --card-size: 240px;
+        --card-size: 300px; /* Significantly increased from 240px */
         --card-gap: 15px;
-        --tile-font-size: 11px;
+        --tile-font-size: 13px;
         --map-padding: 20px;
     }
 }
 
-/* Mobile Portrait (max 567px) */
+/* Mobile Portrait (max 567px) - Single card should fit gracefully */
 @media (max-width: 567px) {
     :root {
-        --card-size: 200px;
-        --card-gap: 12px;
-        --tile-font-size: 10px;
-        --map-padding: 15px;
+        --card-size: 320px; /* Much larger - increased from 200px */
+        --card-gap: 12px; /* Gap less important for single card view */
+        --tile-font-size: 12px; /* Larger font for better readability */
+        --map-padding: 20px; /* Reasonable padding */
     }
 }
 
@@ -1880,13 +1880,13 @@ body {
     }
 }
 
-/* Very small screens (older phones) */
+/* Very small screens (older phones) - ensure minimum usability */
 @media (max-width: 360px) {
     :root {
-        --card-size: 180px;
+        --card-size: 280px; /* Still much larger than before (was 180px) */
         --card-gap: 10px;
-        --tile-font-size: 9px;
-        --map-padding: 10px;
+        --tile-font-size: 11px;
+        --map-padding: 15px;
     }
 
     .controls-menu-btn {
