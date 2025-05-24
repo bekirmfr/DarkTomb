@@ -1,5 +1,24 @@
 ﻿class Game {
     constructor() {
+        // Game constants
+        this.GRID_SIZE = 7;
+        this.VISION_RADIUS = 2; // Increased from 1 for better UX
+        this.BASE_ENGAGEMENT_RANGE = 2;
+        this.MAX_ENVIRONMENT_COOLDOWN = 5;
+        this.MOVEMENT_ADJACENCY_PENALTY = 2; // Fixed penalty instead of all moves
+
+        // Zoom system - expanded for better navigation
+        this.zoomLevels = ['zoom-tiny', 'zoom-small', 'zoom-normal', 'zoom-large', 'zoom-huge', 'zoom-massive'];
+        this.currentZoom = 2; // Index of current zoom level (zoom-normal)
+        this.zoomLabels = ['60%', '80%', '100%', '130%', '160%', '200%'];
+
+        // Map navigation system
+        this.isDragging = false;
+        this.dragStart = { x: 0, y: 0 };
+        this.mapPosition = { x: 0, y: 0 };
+        this.touchStartDistance = 0;
+        this.initialZoom = this.currentZoom;
+
         this.hero = {
             x: 3, y: 3, // Position within current card
             cardX: 0, cardY: 0, // Current card coordinates
@@ -25,10 +44,12 @@
         this.abilityCooldowns = {};
         this.environmentEffect = null;
         this.environmentTurns = 0;
+        this.environmentCooldown = 0; // Cooldown for environmental effects
         this.turn = 1;
         this.turnPhase = 'hero'; // 'hero', 'enemy', 'environment'
         this.mode = 'move';
 
+        // Consolidated abilities (removed duplicates)
         this.abilities = {
             strike: {
                 modifier: 2,
@@ -104,6 +125,12 @@
                 { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 },
                 { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 },
                 { x: 0, y: -1 }, { x: 1, y: -1 }
+            ],
+            3: [
+                { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 },
+                { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 },
+                { x: 0, y: -1 }, { x: 1, y: -1 }, { x: 2, y: -1 }, { x: 3, y: -1 },
+                { x: 1, y: 2 }, { x: 2, y: 2 }
             ]
         };
 
@@ -112,7 +139,7 @@
     }
 
     generateCardDecks() {
-        for (let level = 1; level <= 2; level++) {
+        for (let level = 1; level <= 3; level++) {
             this.cardDecks[level] = [];
             const cardCount = this.levelLayouts[level].length;
 
@@ -129,11 +156,12 @@
             treasures: []
         };
 
-        // Generate terrain
-        for (let y = 0; y < 7; y++) {
+        // Generate terrain with better distribution
+        for (let y = 0; y < this.GRID_SIZE; y++) {
             card.terrain[y] = [];
-            for (let x = 0; x < 7; x++) {
-                if (Math.random() < 0.15) {
+            for (let x = 0; x < this.GRID_SIZE; x++) {
+                // Reduce wall density for better movement
+                if (Math.random() < 0.12) {
                     card.terrain[y][x] = 'wall';
                 } else {
                     card.terrain[y][x] = 'floor';
@@ -142,53 +170,66 @@
         }
 
         // Generate monsters for this card
-        const monsterCount = 2 + Math.floor(level / 2);
+        const monsterCount = Math.max(1, 2 + Math.floor(level / 2));
         const monsterTypes = [
             { name: 'Goblin', attackRange: 1 },
             { name: 'Orc', attackRange: 1 },
             { name: 'Skeleton', attackRange: 2 },
-            { name: 'Spider', attackRange: 1 }
+            { name: 'Spider', attackRange: 1 },
+            { name: 'Wraith', attackRange: 2 }, // New monster type
+            { name: 'Troll', attackRange: 1 }   // New monster type
         ];
 
         for (let i = 0; i < monsterCount; i++) {
             let x, y;
+            let attempts = 0;
             do {
-                x = Math.floor(Math.random() * 7);
-                y = Math.floor(Math.random() * 7);
+                x = Math.floor(Math.random() * this.GRID_SIZE);
+                y = Math.floor(Math.random() * this.GRID_SIZE);
+                attempts++;
             } while (
-                card.terrain[y][x] === 'wall' ||
-                card.monsters.some(m => m.x === x && m.y === y)
+                (card.terrain[y][x] === 'wall' ||
+                    card.monsters.some(m => m.x === x && m.y === y)) &&
+                attempts < 50
             );
 
-            const monsterType = monsterTypes[Math.floor(Math.random() * monsterTypes.length)];
-            card.monsters.push({
-                x, y,
-                hp: 20 + (level * 5),
-                maxHp: 20 + (level * 5),
-                armor: 3 + Math.floor(level / 2),
-                damage: 6 + level,
-                type: monsterType.name,
-                attackRange: monsterType.attackRange,
-                engaged: false,
-                cardX: null, // Will be set when card is placed
-                cardY: null
-            });
+            if (attempts < 50) {
+                const monsterType = monsterTypes[Math.floor(Math.random() * monsterTypes.length)];
+                card.monsters.push({
+                    x, y,
+                    hp: 20 + (level * 5),
+                    maxHp: 20 + (level * 5),
+                    armor: 3 + Math.floor(level / 2),
+                    damage: 6 + level,
+                    type: monsterType.name,
+                    attackRange: monsterType.attackRange,
+                    engaged: false,
+                    cardX: null, // Will be set when card is placed
+                    cardY: null,
+                    unitType: 'enemy' // For character sheet display
+                });
+            }
         }
 
         // Generate treasures
         const treasureCount = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < treasureCount; i++) {
             let x, y;
+            let attempts = 0;
             do {
-                x = Math.floor(Math.random() * 7);
-                y = Math.floor(Math.random() * 7);
+                x = Math.floor(Math.random() * this.GRID_SIZE);
+                y = Math.floor(Math.random() * this.GRID_SIZE);
+                attempts++;
             } while (
-                card.terrain[y][x] === 'wall' ||
-                card.monsters.some(m => m.x === x && m.y === y) ||
-                card.treasures.some(t => t.x === x && t.y === y)
+                (card.terrain[y][x] === 'wall' ||
+                    card.monsters.some(m => m.x === x && m.y === y) ||
+                    card.treasures.some(t => t.x === x && t.y === y)) &&
+                attempts < 50
             );
 
-            card.treasures.push({ x, y, collected: false });
+            if (attempts < 50) {
+                card.treasures.push({ x, y, collected: false });
+            }
         }
 
         return card;
@@ -202,9 +243,9 @@
         };
 
         // Rotate terrain
-        for (let y = 0; y < 7; y++) {
+        for (let y = 0; y < this.GRID_SIZE; y++) {
             rotated.terrain[y] = [];
-            for (let x = 0; x < 7; x++) {
+            for (let x = 0; x < this.GRID_SIZE; x++) {
                 const [newX, newY] = this.rotateCoordinates(x, y, rotation);
                 rotated.terrain[y][x] = card.terrain[newY][newX];
             }
@@ -234,7 +275,7 @@
     }
 
     rotateCoordinates(x, y, rotation) {
-        const center = 3; // 7x7 grid center
+        const center = Math.floor(this.GRID_SIZE / 2); // 7x7 grid center
         const relX = x - center;
         const relY = y - center;
 
@@ -256,6 +297,9 @@
                 newRelX = relY;
                 newRelY = -relX;
                 break;
+            default:
+                newRelX = relX;
+                newRelY = relY;
         }
 
         return [newRelX + center, newRelY + center];
@@ -270,7 +314,9 @@
 
         // Ensure hero starting position is clear
         const startingCard = this.activeCards.get('0,0');
-        startingCard.terrain[3][3] = 'floor';
+        if (startingCard) {
+            startingCard.terrain[3][3] = 'floor';
+        }
 
         this.resetTurnActions();
         this.updateVisibility();
@@ -317,6 +363,10 @@
     }
 
     getCardAtPosition(cardX, cardY) {
+        if (cardX === undefined || cardY === undefined) {
+            console.warn('getCardAtPosition called with undefined coordinates');
+            return null;
+        }
         return this.activeCards.get(`${cardX},${cardY}`);
     }
 
@@ -342,7 +392,6 @@
     }
 
     updateVisibility() {
-        const visionRadius = 1;
         const { cardX, cardY, x: heroX, y: heroY } = this.hero;
 
         // Get or create fog set for current card
@@ -352,14 +401,14 @@
         }
         const fogSet = this.fogOfWar.get(cardKey);
 
-        for (let dy = -visionRadius; dy <= visionRadius; dy++) {
-            for (let dx = -visionRadius; dx <= visionRadius; dx++) {
+        for (let dy = -this.VISION_RADIUS; dy <= this.VISION_RADIUS; dy++) {
+            for (let dx = -this.VISION_RADIUS; dx <= this.VISION_RADIUS; dx++) {
                 const x = heroX + dx;
                 const y = heroY + dy;
 
-                if (x >= 0 && x < 7 && y >= 0 && y < 7) {
+                if (x >= 0 && x < this.GRID_SIZE && y >= 0 && y < this.GRID_SIZE) {
                     const distance = Math.abs(dx) + Math.abs(dy);
-                    if (distance <= visionRadius) {
+                    if (distance <= this.VISION_RADIUS) {
                         fogSet.add(`${x},${y}`);
                     }
                 }
@@ -369,7 +418,7 @@
 
     isHeroOnEdge() {
         const { x, y } = this.hero;
-        return x === 0 || x === 6 || y === 0 || y === 6;
+        return x === 0 || x === this.GRID_SIZE - 1 || y === 0 || y === this.GRID_SIZE - 1;
     }
 
     resetTurnActions() {
@@ -381,23 +430,34 @@
     }
 
     updateTurnDisplay() {
-        document.getElementById('turn-number').textContent = this.turn;
-        const phaseEl = document.getElementById('turn-phase');
+        const turnElement = document.getElementById('turn-number');
+        const phaseElement = document.getElementById('turn-phase');
 
-        phaseEl.classList.remove('hero', 'enemy', 'environment');
-        phaseEl.classList.add(this.turnPhase);
+        if (turnElement) turnElement.textContent = this.turn;
+        if (phaseElement) {
+            phaseElement.classList.remove('hero', 'enemy', 'environment');
+            phaseElement.classList.add(this.turnPhase);
 
-        switch (this.turnPhase) {
-            case 'hero':
-                phaseEl.textContent = 'Hero Phase';
-                break;
-            case 'enemy':
-                phaseEl.textContent = 'Enemy Phase';
-                break;
-            case 'environment':
-                phaseEl.textContent = 'Environment Phase';
-                break;
+            switch (this.turnPhase) {
+                case 'hero':
+                    phaseElement.textContent = 'Hero Phase';
+                    break;
+                case 'enemy':
+                    phaseElement.textContent = 'Enemy Phase';
+                    break;
+                case 'environment':
+                    phaseElement.textContent = 'Environment Phase';
+                    break;
+            }
         }
+    }
+
+    // Clear event listeners to prevent memory leaks
+    clearTileEventListeners() {
+        document.querySelectorAll('.card-tile').forEach(tile => {
+            const newTile = tile.cloneNode(true);
+            tile.parentNode.replaceChild(newTile, tile);
+        });
     }
 
     bindEvents() {
@@ -416,39 +476,171 @@
         });
 
         // Action buttons
-        document.getElementById('move-btn').addEventListener('click', () => {
-            if (this.hero.remainingMoves > 0 && this.turnPhase === 'hero') {
-                this.mode = 'move';
-                this.selectedAbility = null;
-                this.highlightMovementRange();
-                this.updateModeDisplay();
-                // Clear ability selection
-                document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
+        const moveBtn = document.getElementById('move-btn');
+        if (moveBtn) {
+            moveBtn.addEventListener('click', () => {
+                if (this.hero.remainingMoves > 0 && this.turnPhase === 'hero') {
+                    this.mode = 'move';
+                    this.selectedAbility = null;
+                    this.highlightMovementRange();
+                    this.updateModeDisplay();
+                    // Clear ability selection
+                    document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
+                }
+            });
+        }
+
+        const attackBtn = document.getElementById('attack-btn');
+        if (attackBtn) {
+            attackBtn.addEventListener('click', () => {
+                if (!this.hero.hasActed && this.turnPhase === 'hero') {
+                    this.mode = 'attack';
+                    this.selectedAbility = 'strike';
+                    this.highlightAbilityRange();
+                    this.updateModeDisplay();
+                    // Highlight strike ability
+                    document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
+                    const strikeAbility = document.querySelector(`[data-ability="strike"]`);
+                    if (strikeAbility) strikeAbility.classList.add('selected');
+                }
+            });
+        }
+
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        if (endTurnBtn) {
+            endTurnBtn.addEventListener('click', () => {
+                if (this.turnPhase === 'hero') {
+                    this.clearAllHighlights();
+                    this.endHeroTurn();
+                }
+            });
+        }
+
+        const dice = document.getElementById('dice');
+        if (dice) {
+            dice.addEventListener('click', () => {
+                this.rollDice();
+            });
+        }
+
+        // Add keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (this.turnPhase !== 'hero') return;
+
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    this.tryMoveHero(0, -1);
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    this.tryMoveHero(0, 1);
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    e.preventDefault();
+                    this.tryMoveHero(-1, 0);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    e.preventDefault();
+                    this.tryMoveHero(1, 0);
+                    break;
+                case ' ':
+                    e.preventDefault();
+                    this.endHeroTurn();
+                    break;
+                case 'c':
+                case 'C':
+                    e.preventDefault();
+                    this.showCharacterSheet();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    this.clearAllHighlights();
+                    this.mode = 'move';
+                    this.selectedAbility = null;
+                    document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
+                    break;
+                case '=':
+                case '+':
+                    e.preventDefault();
+                    this.zoomIn();
+                    break;
+                case '-':
+                case '_':
+                    e.preventDefault();
+                    this.zoomOut();
+                    break;
+                case '0':
+                    e.preventDefault();
+                    this.resetZoom();
+                    break;
             }
         });
 
-        document.getElementById('attack-btn').addEventListener('click', () => {
-            if (!this.hero.hasActed && this.turnPhase === 'hero') {
-                this.mode = 'attack';
-                this.selectedAbility = 'strike';
-                this.highlightAbilityRange();
-                this.updateModeDisplay();
-                // Highlight strike ability
-                document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
-                document.querySelector(`[data-ability="strike"]`).classList.add('selected');
-            }
-        });
+        // Controls menu toggle
+        const menuBtn = document.getElementById('controls-menu-btn');
+        const menu = document.getElementById('controls-menu');
 
-        document.getElementById('end-turn-btn').addEventListener('click', () => {
-            if (this.turnPhase === 'hero') {
-                this.clearAllHighlights();
-                this.endHeroTurn();
-            }
-        });
+        if (menuBtn && menu) {
+            menuBtn.addEventListener('click', () => {
+                const isOpen = menu.classList.contains('open');
+                if (isOpen) {
+                    menu.classList.remove('open');
+                    menuBtn.classList.remove('open');
+                } else {
+                    menu.classList.add('open');
+                    menuBtn.classList.add('open');
+                }
+            });
+        }
 
-        document.getElementById('dice').addEventListener('click', () => {
-            this.rollDice();
-        });
+        // Zoom controls
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const zoomResetBtn = document.getElementById('zoom-reset');
+        const centerCurrentBtn = document.getElementById('center-current');
+        const centerHeroBtn = document.getElementById('center-hero');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => this.zoomIn());
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        }
+        if (zoomResetBtn) {
+            zoomResetBtn.addEventListener('click', () => this.resetZoom());
+        }
+        if (centerCurrentBtn) {
+            centerCurrentBtn.addEventListener('click', () => this.centerOnCurrentCard());
+        }
+        if (centerHeroBtn) {
+            centerHeroBtn.addEventListener('click', () => this.centerOnHero());
+        }
+
+        // Map dragging and touch controls
+        this.setupMapNavigation();
+
+        // Hide touch indicators on desktop
+        this.updateTouchIndicators();
+    }
+
+    tryMoveHero(deltaX, deltaY) {
+        if (this.mode !== 'move' || this.hero.remainingMoves === 0) return;
+
+        const newX = this.hero.x + deltaX;
+        const newY = this.hero.y + deltaY;
+
+        if (newX >= 0 && newX < this.GRID_SIZE && newY >= 0 && newY < this.GRID_SIZE) {
+            this.moveHero(newX, newY);
+        }
     }
 
     selectAbility(abilityName) {
@@ -463,7 +655,8 @@
         this.updateModeDisplay();
 
         document.querySelectorAll('.ability').forEach(a => a.classList.remove('selected'));
-        document.querySelector(`[data-ability="${abilityName}"]`).classList.add('selected');
+        const selectedAbility = document.querySelector(`[data-ability="${abilityName}"]`);
+        if (selectedAbility) selectedAbility.classList.add('selected');
     }
 
     highlightMovementRange() {
@@ -479,7 +672,7 @@
         reachableTiles.forEach(pos => {
             const cardContainer = document.querySelector(`.card-container.current .card-grid`);
             if (cardContainer) {
-                const tileIndex = pos.y * 7 + pos.x;
+                const tileIndex = pos.y * this.GRID_SIZE + pos.x;
                 const tile = cardContainer.children[tileIndex];
                 if (tile) {
                     tile.classList.add('movement-range');
@@ -516,7 +709,7 @@
         inRangeTiles.forEach(pos => {
             const cardContainer = document.querySelector(`.card-container.current .card-grid`);
             if (cardContainer) {
-                const tileIndex = pos.y * 7 + pos.x;
+                const tileIndex = pos.y * this.GRID_SIZE + pos.x;
                 const tile = cardContainer.children[tileIndex];
                 if (tile) {
                     tile.classList.add('ability-range');
@@ -563,7 +756,7 @@
                 ];
 
                 neighbors.forEach(neighbor => {
-                    if (neighbor.x >= 0 && neighbor.x < 7 && neighbor.y >= 0 && neighbor.y < 7) {
+                    if (neighbor.x >= 0 && neighbor.x < this.GRID_SIZE && neighbor.y >= 0 && neighbor.y < this.GRID_SIZE) {
                         // Check if tile is passable (not wall, not monster)
                         if (card.terrain[neighbor.y][neighbor.x] !== 'wall' &&
                             !card.monsters.some(m => m.x === neighbor.x && m.y === neighbor.y)) {
@@ -571,13 +764,13 @@
                             // Calculate movement cost for this step
                             let moveCost = 1;
 
-                            // Check adjacency rules
+                            // Check adjacency rules - reduced penalty
                             const currentAdjacent = this.isAdjacentToEnemy(x, y, this.hero.cardX, this.hero.cardY);
                             const targetAdjacent = this.isAdjacentToEnemy(neighbor.x, neighbor.y, this.hero.cardX, this.hero.cardY);
 
-                            // If moving from non-adjacent to adjacent position, it costs all remaining moves
+                            // Fixed penalty instead of consuming all moves
                             if (!currentAdjacent && targetAdjacent) {
-                                moveCost = moves; // Consume all remaining movement
+                                moveCost = this.MOVEMENT_ADJACENCY_PENALTY;
                             }
 
                             const newMoves = moves - moveCost;
@@ -604,8 +797,8 @@
     calculateAbilityRange(centerX, centerY, range, card) {
         const inRange = [];
 
-        for (let y = 0; y < 7; y++) {
-            for (let x = 0; x < 7; x++) {
+        for (let y = 0; y < this.GRID_SIZE; y++) {
+            for (let x = 0; x < this.GRID_SIZE; x++) {
                 const distance = Math.abs(x - centerX) + Math.abs(y - centerY);
 
                 if (distance <= range && distance > 0) {
@@ -634,7 +827,7 @@
         while (true) {
             // Don't check the starting position or target position for walls
             if (!(x === x1 && y === y1) && !(x === x2 && y === y2)) {
-                if (card.terrain[y][x] === 'wall') {
+                if (card.terrain[y] && card.terrain[y][x] === 'wall') {
                     return false; // Line blocked by wall
                 }
             }
@@ -656,6 +849,12 @@
     }
 
     handleTileClick(x, y) {
+        // Add bounds checking
+        if (x < 0 || x >= this.GRID_SIZE || y < 0 || y >= this.GRID_SIZE) {
+            console.warn('handleTileClick called with invalid coordinates:', x, y);
+            return;
+        }
+
         if (this.turnPhase !== 'hero') {
             this.showMessage('Wait for your turn!');
             return;
@@ -670,12 +869,13 @@
 
     moveHero(x, y) {
         // Check if trying to move outside current card - not allowed anymore
-        if (x < 0 || x >= 7 || y < 0 || y >= 7) {
+        if (x < 0 || x >= this.GRID_SIZE || y < 0 || y >= this.GRID_SIZE) {
             this.showMessage('Use card transitions to move between areas!');
             return;
         }
 
         const currentCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
+        if (!currentCard) return;
 
         // Check if destination is blocked
         if (currentCard.terrain[y][x] === 'wall' ||
@@ -795,6 +995,8 @@
 
     rollDice(callback) {
         const dice = document.getElementById('dice');
+        if (!dice) return;
+
         dice.classList.add('rolling');
 
         let rollCount = 0;
@@ -807,8 +1009,10 @@
                 clearInterval(rollInterval);
                 dice.classList.remove('rolling');
 
-                if (value >= 19) {
+                // Enhanced environmental effect trigger with cooldown
+                if (value === 20 && this.environmentCooldown === 0) {
                     this.triggerEnvironmentalEffect();
+                    this.environmentCooldown = this.MAX_ENVIRONMENT_COOLDOWN;
                 }
 
                 if (callback) callback(value);
@@ -817,7 +1021,10 @@
     }
 
     attackTarget(target, ability) {
-        const diceValue = parseInt(document.getElementById('dice').textContent);
+        const dice = document.getElementById('dice');
+        if (!dice) return;
+
+        const diceValue = parseInt(dice.textContent);
         const attackRoll = diceValue + ability.modifier;
         let damage = ability.damage;
 
@@ -832,9 +1039,11 @@
 
             if (target.hp <= 0) {
                 const currentCard = this.getCardAtPosition(target.cardX, target.cardY);
-                currentCard.monsters = currentCard.monsters.filter(m => m !== target);
-                this.gainXP(50);
-                this.checkWinCondition();
+                if (currentCard) {
+                    currentCard.monsters = currentCard.monsters.filter(m => m !== target);
+                    this.gainXP(50);
+                    this.checkWinCondition();
+                }
             }
         } else {
             this.showMessage('Attack missed!');
@@ -862,8 +1071,10 @@
         this.environmentTurns = this.environmentEffect.duration;
 
         const effectDiv = document.getElementById('environment-effect');
-        effectDiv.textContent = `${this.environmentEffect.name}: ${this.environmentEffect.effect}`;
-        effectDiv.style.display = 'block';
+        if (effectDiv) {
+            effectDiv.textContent = `${this.environmentEffect.name}: ${this.environmentEffect.effect}`;
+            effectDiv.style.display = 'block';
+        }
 
         this.showMessage(`Environmental Effect: ${this.environmentEffect.name}!`);
     }
@@ -914,7 +1125,8 @@
             this.environmentTurns--;
             if (this.environmentTurns <= 0) {
                 this.environmentEffect = null;
-                document.getElementById('environment-effect').style.display = 'none';
+                const effectDiv = document.getElementById('environment-effect');
+                if (effectDiv) effectDiv.style.display = 'none';
             }
         }
 
@@ -924,6 +1136,11 @@
                 this.abilityCooldowns[ability]--;
             }
         });
+
+        // Reduce environment cooldown
+        if (this.environmentCooldown > 0) {
+            this.environmentCooldown--;
+        }
 
         // Reduce buff durations
         if (this.hero.bonusArmorTurns > 0) {
@@ -951,12 +1168,263 @@
                 const heroCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
                 if (heroCard && monster.cardX === this.hero.cardX && monster.cardY === this.hero.cardY) {
                     const distance = Math.abs(monster.x - this.hero.x) + Math.abs(monster.y - this.hero.y);
-                    if (distance <= monster.attackRange + 2) { // Slightly larger engagement range
+                    if (distance <= monster.attackRange + this.BASE_ENGAGEMENT_RANGE) {
                         monster.engaged = true;
                     }
                 }
             });
         });
+    }
+
+    // Zoom control methods
+    zoomIn() {
+        if (this.currentZoom < this.zoomLevels.length - 1) {
+            this.currentZoom++;
+            this.updateZoom();
+        }
+    }
+
+    zoomOut() {
+        if (this.currentZoom > 0) {
+            this.currentZoom--;
+            this.updateZoom();
+        }
+    }
+
+    resetZoom() {
+        this.currentZoom = 2; // Reset to normal (100%)
+        this.updateZoom();
+    }
+
+    updateZoom() {
+        const levelLayout = document.getElementById('level-layout');
+        const zoomLabel = document.getElementById('zoom-level');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+
+        if (levelLayout) {
+            // Remove all zoom classes
+            this.zoomLevels.forEach(zoom => levelLayout.classList.remove(zoom));
+            // Add current zoom class
+            levelLayout.classList.add(this.zoomLevels[this.currentZoom]);
+        }
+
+        if (zoomLabel) {
+            zoomLabel.textContent = this.zoomLabels[this.currentZoom];
+        }
+
+        // Update button states
+        if (zoomInBtn) {
+            zoomInBtn.disabled = this.currentZoom >= this.zoomLevels.length - 1;
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.disabled = this.currentZoom <= 0;
+        }
+    }
+
+    // Map navigation methods
+    setupMapNavigation() {
+        const mapViewport = document.getElementById('map-viewport');
+        const mapContainer = document.querySelector('.map-container');
+
+        if (!mapViewport || !mapContainer) return;
+
+        // Mouse drag controls
+        mapContainer.addEventListener('mousedown', (e) => this.startDrag(e));
+        document.addEventListener('mousemove', (e) => this.handleDrag(e));
+        document.addEventListener('mouseup', () => this.endDrag());
+
+        // Touch controls
+        mapContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        mapContainer.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        mapContainer.addEventListener('touchend', () => this.handleTouchEnd());
+
+        // Mouse wheel zoom
+        mapContainer.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+
+        // Prevent context menu on right click during drag
+        mapContainer.addEventListener('contextmenu', (e) => {
+            if (this.isDragging) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    startDrag(e) {
+        if (e.button !== 0) return; // Only left mouse button
+
+        this.isDragging = true;
+        this.dragStart.x = e.clientX;
+        this.dragStart.y = e.clientY;
+
+        const mapContainer = document.querySelector('.map-container');
+        if (mapContainer) {
+            mapContainer.style.cursor = 'grabbing';
+        }
+
+        e.preventDefault();
+    }
+
+    handleDrag(e) {
+        if (!this.isDragging) return;
+
+        const deltaX = e.clientX - this.dragStart.x;
+        const deltaY = e.clientY - this.dragStart.y;
+
+        this.scrollMap(deltaX, deltaY);
+
+        this.dragStart.x = e.clientX;
+        this.dragStart.y = e.clientY;
+    }
+
+    endDrag() {
+        this.isDragging = false;
+
+        const mapContainer = document.querySelector('.map-container');
+        if (mapContainer) {
+            mapContainer.style.cursor = 'grab';
+        }
+    }
+
+    handleTouchStart(e) {
+        if (e.touches.length === 1) {
+            // Single touch - start drag
+            const touch = e.touches[0];
+            this.isDragging = true;
+            this.dragStart.x = touch.clientX;
+            this.dragStart.y = touch.clientY;
+        } else if (e.touches.length === 2) {
+            // Two finger pinch - start zoom
+            this.isDragging = false;
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            this.touchStartDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+            this.initialZoom = this.currentZoom;
+        }
+
+        e.preventDefault();
+    }
+
+    handleTouchMove(e) {
+        if (e.touches.length === 1 && this.isDragging) {
+            // Single touch drag
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - this.dragStart.x;
+            const deltaY = touch.clientY - this.dragStart.y;
+
+            this.scrollMap(deltaX, deltaY);
+
+            this.dragStart.x = touch.clientX;
+            this.dragStart.y = touch.clientY;
+        } else if (e.touches.length === 2) {
+            // Pinch to zoom
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+
+            const zoomFactor = currentDistance / this.touchStartDistance;
+            const newZoom = Math.round(this.initialZoom + (zoomFactor - 1) * 3);
+
+            const clampedZoom = Math.max(0, Math.min(this.zoomLevels.length - 1, newZoom));
+
+            if (clampedZoom !== this.currentZoom) {
+                this.currentZoom = clampedZoom;
+                this.updateZoom();
+            }
+        }
+
+        e.preventDefault();
+    }
+
+    handleTouchEnd() {
+        this.isDragging = false;
+        this.touchStartDistance = 0;
+    }
+
+    handleWheel(e) {
+        e.preventDefault();
+
+        // Zoom with mouse wheel
+        if (e.deltaY < 0) {
+            this.zoomIn();
+        } else {
+            this.zoomOut();
+        }
+    }
+
+    scrollMap(deltaX, deltaY) {
+        const mapViewport = document.getElementById('map-viewport');
+        if (!mapViewport) return;
+
+        mapViewport.scrollLeft -= deltaX;
+        mapViewport.scrollTop -= deltaY;
+    }
+
+    centerOnCurrentCard() {
+        const currentCard = document.querySelector('.card-container.current');
+        if (currentCard) {
+            this.scrollToElement(currentCard);
+        }
+    }
+
+    centerOnHero() {
+        // Find hero tile in current card
+        const currentCard = document.querySelector('.card-container.current .card-grid');
+        const heroTile = currentCard?.querySelector('.card-tile.hero');
+
+        if (heroTile) {
+            this.scrollToElement(heroTile, true);
+        } else {
+            // Fallback to current card
+            this.centerOnCurrentCard();
+        }
+    }
+
+    scrollToElement(element, isHeroTile = false) {
+        const mapViewport = document.getElementById('map-viewport');
+        if (!mapViewport || !element) return;
+
+        const rect = element.getBoundingClientRect();
+        const viewportRect = mapViewport.getBoundingClientRect();
+
+        // Calculate the position to center the element
+        const elementCenterX = rect.left + rect.width / 2 - viewportRect.left;
+        const elementCenterY = rect.top + rect.height / 2 - viewportRect.top;
+
+        const viewportCenterX = mapViewport.clientWidth / 2;
+        const viewportCenterY = mapViewport.clientHeight / 2;
+
+        const scrollLeft = mapViewport.scrollLeft + elementCenterX - viewportCenterX;
+        const scrollTop = mapViewport.scrollTop + elementCenterY - viewportCenterY;
+
+        mapViewport.scrollTo({
+            left: scrollLeft,
+            top: scrollTop,
+            behavior: 'smooth'
+        });
+
+        // Show a brief highlight on the target
+        if (isHeroTile) {
+            element.style.boxShadow = '0 0 20px rgba(52, 152, 219, 1)';
+            setTimeout(() => {
+                element.style.boxShadow = '';
+            }, 1000);
+        }
+    }
+
+    updateTouchIndicators() {
+        const touchIndicators = document.getElementById('touch-indicators');
+        if (!touchIndicators) return;
+
+        // Show touch indicators only on touch devices
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        touchIndicators.style.display = isTouchDevice ? 'block' : 'none';
     }
 
     monsterAction(monster) {
@@ -1002,7 +1470,8 @@
 
     tryMonsterCardTransition(monster) {
         // Check if monster is on edge of its current card
-        const isOnEdge = monster.x === 0 || monster.x === 6 || monster.y === 0 || monster.y === 6;
+        const isOnEdge = monster.x === 0 || monster.x === this.GRID_SIZE - 1 ||
+            monster.y === 0 || monster.y === this.GRID_SIZE - 1;
         if (!isOnEdge) {
             // Move towards closest edge that leads to hero
             this.moveMonsterTowardsCardEdge(monster);
@@ -1020,18 +1489,26 @@
             let newX = monster.x;
             let newY = monster.y;
 
-            if (deltaCardX > 0 && monster.x === 6) { // Move east
+            if (deltaCardX > 0 && monster.x === this.GRID_SIZE - 1) { // Move east
                 newCardX++;
                 newX = 0;
             } else if (deltaCardX < 0 && monster.x === 0) { // Move west
                 newCardX--;
-                newX = 6;
-            } else if (deltaCardY > 0 && monster.y === 6) { // Move south
+                newX = this.GRID_SIZE - 1;
+            } else if (deltaCardY > 0 && monster.y === this.GRID_SIZE - 1) { // Move south
                 newCardY++;
                 newY = 0;
             } else if (deltaCardY < 0 && monster.y === 0) { // Move north
                 newCardY--;
-                newY = 6;
+                newY = this.GRID_SIZE - 1;
+            }
+
+            // Validate target card exists in level layout
+            const levelLayout = this.levelLayouts[this.currentLevel];
+            const cardExists = levelLayout.some(pos => pos.x === newCardX && pos.y === newCardY);
+
+            if (!cardExists) {
+                return; // Card doesn't exist in level
             }
 
             // Check if target card exists and position is valid
@@ -1041,7 +1518,9 @@
 
                 // Remove monster from old card
                 const oldCard = this.getCardAtPosition(monster.cardX, monster.cardY);
-                oldCard.monsters = oldCard.monsters.filter(m => m !== monster);
+                if (oldCard) {
+                    oldCard.monsters = oldCard.monsters.filter(m => m !== monster);
+                }
 
                 // Add monster to new card
                 monster.cardX = newCardX;
@@ -1063,14 +1542,14 @@
         let targetY = monster.y;
 
         // Move towards the edge that leads to hero's card
-        if (deltaCardX > 0) targetX = Math.min(6, monster.x + 1);
+        if (deltaCardX > 0) targetX = Math.min(this.GRID_SIZE - 1, monster.x + 1);
         else if (deltaCardX < 0) targetX = Math.max(0, monster.x - 1);
 
-        if (deltaCardY > 0) targetY = Math.min(6, monster.y + 1);
+        if (deltaCardY > 0) targetY = Math.min(this.GRID_SIZE - 1, monster.y + 1);
         else if (deltaCardY < 0) targetY = Math.max(0, monster.y - 1);
 
         const card = this.getCardAtPosition(monster.cardX, monster.cardY);
-        if (card.terrain[targetY][targetX] !== 'wall' &&
+        if (card && card.terrain[targetY][targetX] !== 'wall' &&
             !card.monsters.some(m => m.x === targetX && m.y === targetY && m !== monster)) {
             monster.x = targetX;
             monster.y = targetY;
@@ -1079,6 +1558,8 @@
 
     moveMonsterTowardsHero(monster) {
         const card = this.getCardAtPosition(monster.cardX, monster.cardY);
+        if (!card) return;
+
         let bestMove = { x: monster.x, y: monster.y };
         let bestDistance = this.getDistanceToHero(monster);
 
@@ -1090,7 +1571,7 @@
         ];
 
         moves.forEach(move => {
-            if (move.x >= 0 && move.x < 7 && move.y >= 0 && move.y < 7 &&
+            if (move.x >= 0 && move.x < this.GRID_SIZE && move.y >= 0 && move.y < this.GRID_SIZE &&
                 card.terrain[move.y][move.x] !== 'wall' &&
                 !card.monsters.some(m => m.x === move.x && m.y === move.y && m !== monster)) {
 
@@ -1173,7 +1654,7 @@
         const currentCardContainer = document.querySelector(`.card-container.current .card-grid`);
         if (!currentCardContainer) return;
 
-        const tileIndex = y * 7 + x;
+        const tileIndex = y * this.GRID_SIZE + x;
         const tile = currentCardContainer.children[tileIndex];
         if (!tile) return;
 
@@ -1235,247 +1716,232 @@
         };
 
         content.innerHTML = `
-                        <div class="character-header">
-                            <div class="character-name">${character.name || character.type}</div>
-                            <div class="character-class">${character.class}</div>
-                            <div class="character-portrait">${getUnitIcon(character.unitType)}</div>
-                            <div style="font-size: 14px; color: #bbb; line-height: 1.4; margin-top: 10px;">
-                                ${character.background}
+            <div class="character-header">
+                <div class="character-name">${character.name || character.type}</div>
+                <div class="character-class">${character.class || 'Monster'}</div>
+                <div class="character-portrait">${getUnitIcon(character.unitType)}</div>
+                <div style="font-size: 14px; color: #bbb; line-height: 1.4; margin-top: 10px;">
+                    ${character.background || 'A dangerous creature that lurks in the shadows of Bloodthorn Island.'}
+                </div>
+                ${character.unitType === 'enemy' ? `
+                    <div style="font-size: 12px; color: #e17055; margin-top: 8px; font-weight: bold;">
+                        ⚠️ Threat Level: ${character.level || 1}
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="character-stats">
+                <div class="stat-group">
+                    <h3>Combat Stats</h3>
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <div class="stat-icon hp-icon">♥</div>
+                            Health
+                        </div>
+                        <div class="stat-value">${character.hp}/${character.maxHp}</div>
+                    </div>
+                    <div class="stat-bar">
+                        <div class="stat-bar-fill hp" style="width: ${hpPercent}%"></div>
+                    </div>
+
+                    <div class="stat-row">
+                        <div class="stat-label">
+                            <div class="stat-icon armor-icon">🛡</div>
+                            Armor
+                        </div>
+                        <div class="stat-value">${totalArmor}</div>
+                    </div>
+                    ${character === this.hero && this.hero.bonusArmor > 0 ? `
+                        <div style="font-size: 12px; color: #00cec9; margin-left: 28px;">
+                            +${this.hero.bonusArmor} bonus (${this.hero.bonusArmorTurns} turns)
+                        </div>
+                    ` : ''}
+
+                    ${character === this.hero ? `
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <div class="stat-icon move-icon">👟</div>
+                                Movement
                             </div>
-                            ${character.unitType === 'enemy' ? `
-                                <div style="font-size: 12px; color: #e17055; margin-top: 8px; font-weight: bold;">
-                                    ⚠️ Threat Level: ${character.level || 1}
-                                </div>
-                            ` : ''}
+                            <div class="stat-value">${this.hero.move}</div>
+                        </div>
+                    ` : ''}
+
+                    ${character.damage ? `
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #e74c3c;">⚔️</span>
+                                Attack Damage
+                            </div>
+                            <div class="stat-value">${character.damage}</div>
+                        </div>
+                    ` : ''}
+
+                    ${character.attackRange ? `
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #74b9ff;">📏</span>
+                                Attack Range
+                            </div>
+                            <div class="stat-value">${character.attackRange}</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="stat-group">
+                    <h3>${character === this.hero ? 'Character Progress' : 'Status Information'}</h3>
+
+                    ${character === this.hero ? `
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #74b9ff;">⚔️</span>
+                                Level
+                            </div>
+                            <div class="stat-value">${this.hero.level}</div>
                         </div>
 
-                        <div class="character-stats">
-                            <div class="stat-group">
-                                <h3>Combat Stats</h3>
-                                <div class="stat-row">
-                                    <div class="stat-label">
-                                        <div class="stat-icon hp-icon">♥</div>
-                                        Health
-                                    </div>
-                                    <div class="stat-value">${character.hp}/${character.maxHp}</div>
-                                </div>
-                                <div class="stat-bar">
-                                    <div class="stat-bar-fill hp" style="width: ${hpPercent}%"></div>
-                                </div>
-
-                                <div class="stat-row">
-                                    <div class="stat-label">
-                                        <div class="stat-icon armor-icon">🛡</div>
-                                        Armor
-                                    </div>
-                                    <div class="stat-value">${totalArmor}</div>
-                                </div>
-                                ${character === this.hero && this.hero.bonusArmor > 0 ? `
-                                    <div style="font-size: 12px; color: #00cec9; margin-left: 28px;">
-                                        +${this.hero.bonusArmor} bonus (${this.hero.bonusArmorTurns} turns)
-                                    </div>
-                                ` : ''}
-
-                                ${character === this.hero ? `
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <div class="stat-icon move-icon">👟</div>
-                                            Movement
-                                        </div>
-                                        <div class="stat-value">${this.hero.move}</div>
-                                    </div>
-                                ` : ''}
-
-                                ${character.damage ? `
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #e74c3c;">⚔️</span>
-                                            Attack Damage
-                                        </div>
-                                        <div class="stat-value">${character.damage}</div>
-                                    </div>
-                                ` : ''}
-
-                                ${character.attackRange ? `
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #74b9ff;">📏</span>
-                                            Attack Range
-                                        </div>
-                                        <div class="stat-value">${character.attackRange}</div>
-                                    </div>
-                                ` : ''}
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <div class="stat-icon xp-icon">⭐</div>
+                                Experience
                             </div>
+                            <div class="stat-value">${this.hero.xp}/${this.hero.level * 100}</div>
+                        </div>
+                        <div class="stat-bar">
+                            <div class="stat-bar-fill xp" style="width: ${xpPercent}%"></div>
+                        </div>
 
-                            <div class="stat-group">
-                                <h3>${character === this.hero ? 'Character Progress' : 'Status Information'}</h3>
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #6c5ce7;">🗺️</span>
+                                Location
+                            </div>
+                            <div class="stat-value">(${this.hero.cardX},${this.hero.cardY})</div>
+                        </div>
 
-                                ${character === this.hero ? `
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #74b9ff;">⚔️</span>
-                                            Level
-                                        </div>
-                                        <div class="stat-value">${this.hero.level}</div>
-                                    </div>
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #f39c12;">🏰</span>
+                                Current Level
+                            </div>
+                            <div class="stat-value">${this.currentLevel}</div>
+                        </div>
+                    ` : `
+                        ${character.level ? `
+                            <div class="stat-row">
+                                <div class="stat-label">
+                                    <span style="color: #e17055;">💀</span>
+                                    Threat Level
+                                </div>
+                                <div class="stat-value">${character.level}</div>
+                            </div>
+                        ` : ''}
 
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <div class="stat-icon xp-icon">⭐</div>
-                                            Experience
-                                        </div>
-                                        <div class="stat-value">${this.hero.xp}/${this.hero.level * 100}</div>
-                                    </div>
-                                    <div class="stat-bar">
-                                        <div class="stat-bar-fill xp" style="width: ${xpPercent}%"></div>
-                                    </div>
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: #6c5ce7;">🗺️</span>
+                                Location
+                            </div>
+                            <div class="stat-value">(${character.cardX || 0},${character.cardY || 0})</div>
+                        </div>
 
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #6c5ce7;">🗺️</span>
-                                            Location
-                                        </div>
-                                        <div class="stat-value">(${this.hero.cardX},${this.hero.cardY})</div>
-                                    </div>
-
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #f39c12;">🏰</span>
-                                            Current Level
-                                        </div>
-                                        <div class="stat-value">${this.currentLevel}</div>
-                                    </div>
-                                ` : `
-                                    ${character.level ? `
-                                        <div class="stat-row">
-                                            <div class="stat-label">
-                                                <span style="color: #e17055;">💀</span>
-                                                Threat Level
-                                            </div>
-                                            <div class="stat-value">${character.level}</div>
-                                        </div>
-                                    ` : ''}
-
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: #6c5ce7;">🗺️</span>
-                                            Location
-                                        </div>
-                                        <div class="stat-value">(${character.cardX || 0},${character.cardY || 0})</div>
-                                    </div>
-
-                                    <div class="stat-row">
-                                        <div class="stat-label">
-                                            <span style="color: ${character.engaged ? '#e74c3c' : '#95a5a6'};">⚡</span>
-                                            Status
-                                        </div>
-                                        <div class="stat-value" style="color: ${character.engaged ? '#e74c3c' : '#95a5a6'};">
-                                            ${character.engaged ? 'ENGAGED' : 'Dormant'}
-                                        </div>
-                                    </div>
-
-                                    ${character.unitType === 'enemy' ? `
-                                        <div class="stat-row">
-                                            <div class="stat-label">
-                                                <span style="color: #e17055;">🎯</span>
-                                                Behavior
-                                            </div>
-                                            <div class="stat-value">
-                                                ${character.engaged ? 'Hostile' : 'Patrolling'}
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                `}
+                        <div class="stat-row">
+                            <div class="stat-label">
+                                <span style="color: ${character.engaged ? '#e74c3c' : '#95a5a6'};">⚡</span>
+                                Status
+                            </div>
+                            <div class="stat-value" style="color: ${character.engaged ? '#e74c3c' : '#95a5a6'};">
+                                ${character.engaged ? 'ENGAGED' : 'Dormant'}
                             </div>
                         </div>
 
-                        <div class="abilities-section">
-                            <h3>${getUnitTitle(character.unitType)}</h3>
-                            <div class="abilities-grid">
-                                ${character === this.hero ?
+                        ${character.unitType === 'enemy' ? `
+                            <div class="stat-row">
+                                <div class="stat-label">
+                                    <span style="color: #e17055;">🎯</span>
+                                    Behavior
+                                </div>
+                                <div class="stat-value">
+                                    ${character.engaged ? 'Hostile' : 'Patrolling'}
+                                </div>
+                            </div>
+                        ` : ''}
+                    `}
+                </div>
+            </div>
+
+            <div class="abilities-section">
+                <h3>${getUnitTitle(character.unitType)}</h3>
+                <div class="abilities-grid">
+                    ${character === this.hero ?
                 // Hero abilities
                 Object.entries(this.abilities).map(([key, ability]) => {
                     const cooldown = this.abilityCooldowns[key] || 0;
                     const isOnCooldown = cooldown > 0;
 
                     return `
-                                            <div class="ability-card ${isOnCooldown ? 'on-cooldown' : ''}">
-                                                <div class="ability-header">
-                                                    <div class="ability-title">${ability.name}</div>
-                                                    ${isOnCooldown ? `<div class="ability-cooldown">Cooldown: ${cooldown}</div>` : ''}
-                                                </div>
-                                                <div class="ability-description">${ability.description}</div>
-                                                <div class="ability-stats">
-                                                    ${ability.damage !== 0 ? `<div class="ability-stat">
-                                                        <span style="color: ${ability.damage > 0 ? '#e74c3c' : '#2ecc71'};">⚔️</span>
-                                                        ${ability.damage > 0 ? 'Damage' : 'Healing'}: ${Math.abs(ability.damage)}
-                                                    </div>` : ''}
-                                                    ${ability.range > 0 ? `<div class="ability-stat">
-                                                        <span style="color: #74b9ff;">📏</span>
-                                                        Range: ${ability.range}
-                                                    </div>` : ''}
-                                                    ${ability.modifier !== 0 ? `<div class="ability-stat">
-                                                        <span style="color: #f39c12;">🎯</span>
-                                                        Bonus: +${ability.modifier}
-                                                    </div>` : ''}
-                                                    ${ability.cooldown > 0 ? `<div class="ability-stat">
-                                                        <span style="color: #636e72;">⏰</span>
-                                                        Cooldown: ${ability.cooldown}
-                                                    </div>` : ''}
-                                                </div>
-                                            </div>
-                                        `;
+                                <div class="ability-card ${isOnCooldown ? 'on-cooldown' : ''}">
+                                    <div class="ability-header">
+                                        <div class="ability-title">${ability.name}</div>
+                                        ${isOnCooldown ? `<div class="ability-cooldown">Cooldown: ${cooldown}</div>` : ''}
+                                    </div>
+                                    <div class="ability-description">${ability.description}</div>
+                                    <div class="ability-stats">
+                                        ${ability.damage !== 0 ? `<div class="ability-stat">
+                                            <span style="color: ${ability.damage > 0 ? '#e74c3c' : '#2ecc71'};">⚔️</span>
+                                            ${ability.damage > 0 ? 'Damage' : 'Healing'}: ${Math.abs(ability.damage)}
+                                        </div>` : ''}
+                                        ${ability.range > 0 ? `<div class="ability-stat">
+                                            <span style="color: #74b9ff;">📏</span>
+                                            Range: ${ability.range}
+                                        </div>` : ''}
+                                        ${ability.modifier !== 0 ? `<div class="ability-stat">
+                                            <span style="color: #f39c12;">🎯</span>
+                                            Bonus: +${ability.modifier}
+                                        </div>` : ''}
+                                        ${ability.cooldown > 0 ? `<div class="ability-stat">
+                                            <span style="color: #636e72;">⏰</span>
+                                            Cooldown: ${ability.cooldown}
+                                        </div>` : ''}
+                                    </div>
+                                </div>
+                            `;
                 }).join('')
                 :
                 // Enemy/other unit abilities
-                (character.abilities || []).map(abilityName => {
-                    const abilityDescriptions = {
-                        'Backstab': 'Deals extra damage when attacking from behind or when the target is distracted.',
-                        'Pack Hunt': 'Gains damage bonus when other goblins are nearby.',
-                        'Rage': 'Enters a berserker rage, increasing damage but reducing armor.',
-                        'Intimidate': 'Causes fear in nearby enemies, reducing their accuracy.',
-                        'Piercing Shot': 'Arrow ignores armor and can hit multiple targets in a line.',
-                        'Bone Armor': 'Supernatural protection that reduces incoming damage.',
-                        'Venom Strike': 'Bite inflicts poison that deals damage over time.',
-                        'Web Trap': 'Creates sticky webs that immobilize enemies.'
-                    };
-
-                    return `
-                                            <div class="ability-card">
-                                                <div class="ability-header">
-                                                    <div class="ability-title">${abilityName}</div>
-                                                </div>
-                                                <div class="ability-description">
-                                                    ${abilityDescriptions[abilityName] || 'A special ability unique to this creature.'}
-                                                </div>
-                                                <div class="ability-stats">
-                                                    <div class="ability-stat">
-                                                        <span style="color: #e17055;">💀</span>
-                                                        ${character.unitType === 'enemy' ? 'Hostile Ability' : 'Special Ability'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `;
-                }).join('') ||
                 `<div class="ability-card">
-                                        <div class="ability-header">
-                                            <div class="ability-title">No Special Abilities</div>
-                                        </div>
-                                        <div class="ability-description">
-                                            This ${character.unitType || 'character'} relies on basic combat techniques.
-                                        </div>
-                                    </div>`
-            }
+                            <div class="ability-header">
+                                <div class="ability-title">Basic Combat</div>
                             </div>
-                        </div>
+                            <div class="ability-description">
+                                This creature relies on basic melee attacks and natural instincts to defeat its enemies.
+                            </div>
+                            <div class="ability-stats">
+                                <div class="ability-stat">
+                                    <span style="color: #e17055;">💀</span>
+                                    ${character.unitType === 'enemy' ? 'Hostile Entity' : 'Neutral Unit'}
+                                </div>
+                            </div>
+                        </div>`
+            }
+                </div>
+            </div>
 
-                        <button class="close-btn" onclick="this.parentElement.parentElement.remove()">
-                            Close ${character === this.hero ? 'Character Sheet' : 'Information'}
-                        </button>
-                    `;
+            <button class="close-btn">
+                Close ${character === this.hero ? 'Character Sheet' : 'Information'}
+            </button>
+        `;
 
         characterSheet.appendChild(content);
         document.body.appendChild(characterSheet);
+
+        // Add proper event listeners instead of inline onclick
+        const closeBtn = content.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                characterSheet.remove();
+            });
+        }
 
         // Add click-to-close functionality
         characterSheet.addEventListener('click', (e) => {
@@ -1491,10 +1957,17 @@
 
         const messageEl = document.createElement('div');
         messageEl.className = 'message-container';
-        messageEl.innerHTML = `
-                        <div>${text}</div>
-                        <button style="margin-top: 10px; padding: 8px 16px; background: #6c5ce7; border: none; border-radius: 4px; color: white; cursor: pointer;" onclick="this.parentElement.remove()">OK</button>
-                    `;
+
+        const messageContent = document.createElement('div');
+        messageContent.textContent = text;
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'OK';
+        closeButton.style.cssText = 'margin-top: 10px; padding: 8px 16px; background: #6c5ce7; border: none; border-radius: 4px; color: white; cursor: pointer;';
+        closeButton.addEventListener('click', () => messageEl.remove());
+
+        messageEl.appendChild(messageContent);
+        messageEl.appendChild(closeButton);
 
         document.body.appendChild(messageEl);
         setTimeout(() => {
@@ -1503,19 +1976,29 @@
     }
 
     updateDisplay() {
-        document.getElementById('hero-hp').textContent = `${this.hero.hp}/${this.hero.maxHp}`;
-        document.getElementById('hero-armor').textContent = this.hero.armor + this.hero.bonusArmor;
-        document.getElementById('hero-move').textContent = `${this.hero.remainingMoves}/${this.hero.move}`;
-        document.getElementById('hero-xp').textContent = this.hero.xp;
-        document.getElementById('hero-level').textContent = this.hero.level;
-        document.getElementById('current-card').textContent = `(${this.hero.cardX},${this.hero.cardY})`;
+        const elements = {
+            'hero-hp': `${this.hero.hp}/${this.hero.maxHp}`,
+            'hero-armor': this.hero.armor + this.hero.bonusArmor,
+            'hero-move': `${this.hero.remainingMoves}/${this.hero.move}`,
+            'hero-xp': this.hero.xp,
+            'hero-level': this.hero.level,
+            'current-card': `(${this.hero.cardX},${this.hero.cardY})`
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
 
         const xpProgress = (this.hero.xp / (this.hero.level * 100)) * 100;
-        document.getElementById('xp-progress').style.width = xpProgress + '%';
+        const xpProgressEl = document.getElementById('xp-progress');
+        if (xpProgressEl) xpProgressEl.style.width = xpProgress + '%';
 
         // Update ability cooldowns and action status
         Object.keys(this.abilities).forEach(abilityName => {
             const abilityEl = document.querySelector(`[data-ability="${abilityName}"]`);
+            if (!abilityEl) return;
+
             const cooldown = this.abilityCooldowns[abilityName] || 0;
 
             abilityEl.classList.remove('cooldown');
@@ -1545,23 +2028,27 @@
         });
 
         const endTurnBtn = document.getElementById('end-turn-btn');
-        if (this.turnPhase !== 'hero') {
-            endTurnBtn.style.background = 'linear-gradient(45deg, #636e72, #2d3436)';
-            endTurnBtn.textContent = 'Processing...';
-            endTurnBtn.disabled = true;
-        } else if (this.hero.remainingMoves === 0 && this.hero.hasActed) {
-            endTurnBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
-            endTurnBtn.textContent = 'Turn Complete';
-            endTurnBtn.disabled = false;
-        } else {
-            endTurnBtn.style.background = 'linear-gradient(45deg, #00b894, #00cec9)';
-            endTurnBtn.textContent = 'End Turn';
-            endTurnBtn.disabled = false;
+        if (endTurnBtn) {
+            if (this.turnPhase !== 'hero') {
+                endTurnBtn.style.background = 'linear-gradient(45deg, #636e72, #2d3436)';
+                endTurnBtn.textContent = 'Processing...';
+                endTurnBtn.disabled = true;
+            } else if (this.hero.remainingMoves === 0 && this.hero.hasActed) {
+                endTurnBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+                endTurnBtn.textContent = 'Turn Complete';
+                endTurnBtn.disabled = false;
+            } else {
+                endTurnBtn.style.background = 'linear-gradient(45deg, #00b894, #00cec9)';
+                endTurnBtn.textContent = 'End Turn';
+                endTurnBtn.disabled = false;
+            }
         }
     }
 
     updateModeDisplay() {
         const diceResult = document.getElementById('dice-result');
+        if (!diceResult) return;
+
         let statusText = `${this.mode.charAt(0).toUpperCase() + this.mode.slice(1)} mode`;
 
         if (this.turnPhase !== 'hero') {
@@ -1579,8 +2066,15 @@
         const currentCard = this.getCardAtPosition(this.hero.cardX, this.hero.cardY);
         const hasMonsters = currentCard && currentCard.monsters.length > 0;
 
-        document.getElementById('attack-btn').disabled = !hasMonsters || this.hero.hasActed || this.turnPhase !== 'hero';
-        document.getElementById('move-btn').disabled = this.hero.remainingMoves === 0 || this.turnPhase !== 'hero';
+        const attackBtn = document.getElementById('attack-btn');
+        const moveBtn = document.getElementById('move-btn');
+
+        if (attackBtn) {
+            attackBtn.disabled = !hasMonsters || this.hero.hasActed || this.turnPhase !== 'hero';
+        }
+        if (moveBtn) {
+            moveBtn.disabled = this.hero.remainingMoves === 0 || this.turnPhase !== 'hero';
+        }
     }
 
     calculateLevelGridLayout() {
@@ -1605,6 +2099,11 @@
 
     renderMap() {
         const levelLayout = document.getElementById('level-layout');
+        if (!levelLayout) return;
+
+        // Clear old event listeners before re-rendering
+        this.clearTileEventListeners();
+
         levelLayout.innerHTML = '';
 
         const { gridWidth, gridHeight, offsetX, offsetY } = this.calculateLevelGridLayout();
@@ -1638,6 +2137,9 @@
                 }
             }
         }
+
+        // Maintain zoom level after re-render
+        this.updateZoom();
     }
 
     createCardContainer(cardX, cardY) {
@@ -1678,8 +2180,8 @@
             const cardGrid = document.createElement('div');
             cardGrid.className = 'card-grid';
 
-            for (let y = 0; y < 7; y++) {
-                for (let x = 0; x < 7; x++) {
+            for (let y = 0; y < this.GRID_SIZE; y++) {
+                for (let x = 0; x < this.GRID_SIZE; x++) {
                     const tile = document.createElement('div');
                     tile.className = 'card-tile';
                     tile.dataset.x = x;
@@ -1858,9 +2360,9 @@
         const { x: heroX, y: heroY } = this.hero;
         let canTransition = false;
 
-        if (targetCardX > this.hero.cardX && heroX === 6) canTransition = true; // Moving east from east edge
+        if (targetCardX > this.hero.cardX && heroX === this.GRID_SIZE - 1) canTransition = true; // Moving east from east edge
         if (targetCardX < this.hero.cardX && heroX === 0) canTransition = true; // Moving west from west edge
-        if (targetCardY > this.hero.cardY && heroY === 6) canTransition = true; // Moving south from south edge
+        if (targetCardY > this.hero.cardY && heroY === this.GRID_SIZE - 1) canTransition = true; // Moving south from south edge
         if (targetCardY < this.hero.cardY && heroY === 0) canTransition = true; // Moving north from north edge
 
         if (!canTransition) {
@@ -1875,11 +2377,12 @@
         let entryX = heroX, entryY = heroY;
 
         if (targetCardX > this.hero.cardX) entryX = 0; // Entering from west
-        if (targetCardX < this.hero.cardX) entryX = 6; // Entering from east
+        if (targetCardX < this.hero.cardX) entryX = this.GRID_SIZE - 1; // Entering from east
         if (targetCardY > this.hero.cardY) entryY = 0; // Entering from north
-        if (targetCardY < this.hero.cardY) entryY = 6; // Entering from south
+        if (targetCardY < this.hero.cardY) entryY = this.GRID_SIZE - 1; // Entering from south
 
         const newCard = this.getCardAtPosition(targetCardX, targetCardY);
+        if (!newCard) return;
 
         // Check if entry point is valid
         if (newCard.terrain[entryY][entryX] === 'wall' ||

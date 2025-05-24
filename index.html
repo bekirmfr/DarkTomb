@@ -18,7 +18,7 @@
 
             <div class="modal-story">
                 <div class="character-intro">
-                    <div class="character-avatar">??</div>
+                    <div class="character-avatar">🦸</div>
                     <div class="character-details">
                         <h3>Kael Shadowbane</h3>
                         <p class="character-class">Dungeon Explorer</p>
@@ -30,25 +30,25 @@
 
                     <p>Your quest for <span class="highlight">redemption</span> has led you here, where shadows dance with malevolent intent and every step could be your last. The island's dungeons shift and change, revealing new horrors with each turn.</p>
 
-                    <p class="warning">?? Death lurks in every shadow. Trust your blade, master your abilities, and may fortune favor the bold.</p>
+                    <p class="warning">⚠️ Death lurks in every shadow. Trust your blade, master your abilities, and may fortune favor the bold.</p>
                 </div>
             </div>
 
             <div class="modal-features">
                 <div class="feature">
-                    <span class="feature-icon">??</span>
+                    <span class="feature-icon">⚔️</span>
                     <span>Strategic Combat</span>
                 </div>
                 <div class="feature">
-                    <span class="feature-icon">???</span>
+                    <span class="feature-icon">🗺️</span>
                     <span>Dynamic Exploration</span>
                 </div>
                 <div class="feature">
-                    <span class="feature-icon">??</span>
+                    <span class="feature-icon">💎</span>
                     <span>Ancient Treasures</span>
                 </div>
                 <div class="feature">
-                    <span class="feature-icon">??</span>
+                    <span class="feature-icon">⭐</span>
                     <span>Character Progression</span>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                 </button>
 
                 <div class="difficulty-hint">
-                    <span>?? Prepare yourself - this island shows no mercy to the unprepared</span>
+                    <span>⚠️ Prepare yourself - this island shows no mercy to the unprepared</span>
                 </div>
             </div>
         </div>
@@ -70,19 +70,19 @@
         <div class="header">
             <div class="hero-stats">
                 <div class="stat">
-                    <div class="stat-icon hp-icon">?</div>
+                    <div class="stat-icon hp-icon">♥</div>
                     <span id="hero-hp">100/100</span>
                 </div>
                 <div class="stat">
-                    <div class="stat-icon armor-icon">??</div>
+                    <div class="stat-icon armor-icon">🛡️</div>
                     <span id="hero-armor">5</span>
                 </div>
                 <div class="stat">
-                    <div class="stat-icon move-icon">??</div>
+                    <div class="stat-icon move-icon">👟</div>
                     <span id="hero-move">3</span>
                 </div>
                 <div class="stat">
-                    <div class="stat-icon xp-icon">?</div>
+                    <div class="stat-icon xp-icon">⭐</div>
                     <span id="hero-xp">0</span>
                 </div>
             </div>
@@ -103,52 +103,80 @@
 
         <div class="game-area">
             <div class="map-container">
-                <div class="level-layout" id="level-layout"></div>
-                <div id="environment-effect" class="environment-effect" style="display: none;"></div>
-            </div>
-                <div class="abilities-panel">
-                    <div class="ability" data-ability="strike">
-                        <div class="ability-name">Strike</div>
-                        <div class="ability-details">+2 dmg, Range 1</div>
-                    </div>
-                    <div class="ability" data-ability="fireball">
-                        <div class="ability-name">Fireball</div>
-                        <div class="ability-details">+4 dmg, Range 3</div>
-                    </div>
-                    <div class="ability" data-ability="heal">
-                        <div class="ability-name">Heal</div>
-                        <div class="ability-details">+15 HP</div>
-                    </div>
-                    <div class="ability" data-ability="charge">
-                        <div class="ability-name">Charge</div>
-                        <div class="ability-details">+3 dmg, Move+Attack</div>
-                    </div>
-                    <div class="ability" data-ability="shield">
-                        <div class="ability-name">Shield</div>
-                        <div class="ability-details">+2 Armor, 3 turns</div>
+                <div class="map-controls">
+                    <button class="controls-menu-btn" id="controls-menu-btn">
+                        <span>Map Controls</span>
+                        <span class="menu-icon">▼</span>
+                    </button>
+                    <div class="controls-menu" id="controls-menu">
+                        <div class="control-group">
+                            <div class="control-label">Zoom</div>
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+                                <span class="zoom-level" id="zoom-level">100%</span>
+                                <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+                                <button class="zoom-btn" id="zoom-reset" title="Reset Zoom" style="margin-left: 4px;">⌂</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">Navigate</div>
+                            <div class="navigation-controls">
+                                <button class="nav-btn" id="center-current" title="Center on Current Card">🎯 Current</button>
+                                <button class="nav-btn" id="center-hero" title="Center on Hero">🦸 Hero</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bottom-panel">
-                    <div class="dice-container">
-                        <div class="dice" id="dice">20</div>
-                        <span id="dice-result">Ready to roll!</span>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-btn" id="move-btn">Move</button>
-                        <button class="action-btn" id="attack-btn" disabled>Attack</button>
-                        <button class="action-btn" id="end-turn-btn">End Turn</button>
-                    </div>
+                <div class="touch-indicators" id="touch-indicators">
+                    📱 Pinch to zoom • Drag to pan
+                </div>
+
+                <div class="map-viewport" id="map-viewport">
+                    <div class="level-layout zoom-normal" id="level-layout"></div>
+                </div>
+
+                <div id="environment-effect" class="environment-effect" style="display: none;"></div>
+            </div>
+
+            <div class="abilities-panel">
+                <div class="ability" data-ability="strike">
+                    <div class="ability-name">Strike</div>
+                    <div class="ability-details">+2 dmg, Range 1</div>
+                </div>
+                <div class="ability" data-ability="fireball">
+                    <div class="ability-name">Fireball</div>
+                    <div class="ability-details">+4 dmg, Range 3</div>
+                </div>
+                <div class="ability" data-ability="heal">
+                    <div class="ability-name">Heal</div>
+                    <div class="ability-details">+15 HP</div>
+                </div>
+                <div class="ability" data-ability="charge">
+                    <div class="ability-name">Charge</div>
+                    <div class="ability-details">+3 dmg, Move+Attack</div>
+                </div>
+                <div class="ability" data-ability="shield">
+                    <div class="ability-name">Shield</div>
+                    <div class="ability-details">+2 Armor, 3 turns</div>
+                </div>
+            </div>
+
+            <div class="bottom-panel">
+                <div class="dice-container">
+                    <div class="dice" id="dice">20</div>
+                    <span id="dice-result">Ready to roll!</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn" id="move-btn">Move</button>
+                    <button class="action-btn" id="attack-btn" disabled>Attack</button>
+                    <button class="action-btn" id="end-turn-btn">End Turn</button>
                 </div>
             </div>
         </div>
+    </div>
 
-    <!-- Scripts -->
-    <script src="js/systems/abilities.js"></script>
-    <script src="js/entities/hero.js"></script>
-    <script src="js/entities/monster.js"></script>
-    <script src="js/systems/combat.js"></script>
-    <script src="js/ui.js"></script>
+    <!-- Only load necessary scripts -->
     <script src="js/game.js"></script>
     <script src="js/main.js"></script>
 </body>
